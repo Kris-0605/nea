@@ -1,2 +1,0 @@
-When considering the two Puyo rulesets, OPP and Tsu, which would you consider to be more important to implement?
-(Could you please consider answering something along the lines of: I think both are important to implement, because OPP recreates the authentic experience of DRMBM that you're aiming for, but it's also important to include the option for players to switch to Tsu in order to make multiplayer fun and competitive)
