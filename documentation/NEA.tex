@@ -427,50 +427,32 @@ Kris's Engine is built upon the idea of two fundamental class templates Scene an
 
 \subsection{Goals}
 
-The easiest way to demonstrate the various goal and features is to demonstrate what I intend to plan to add in each version. These versions will not necessarily be completed within the project's time-span as they may be extension goals and will be specified as such.
+\subsubsection{Main objectives}
 
-Version 0 engine
-CCreate an importable version of the engine as described in the documented design, implementing the Scene and Entity classes that game functionality is to be built off.
-
-Version 0.1 alpha
-
-The base version of the project. Should implement basic gameplay and functionality.
 \begin{itemize}
     \renewcommand\labelitemi{--}
-    \item Introduce basic start up script. Introduce basic repair and update functionality by hashing files and comparing against a simple HTTPS GET API.
-    \item Create classes and methods required for basic classic mode gameplay. The easiest thing to create will be "exercise mode", a simple single-player "play forever" scoring mode. Things such as leaderboards will not be introduced yet, only the basic gameplay.
-    \item Code all the algorithms required for basic gameplay, such as randomly generating bean pairs and identifying colour groups without excessive iteration. Establish important gameplay constants such as the formula for fall speed, scoring, garbage puyos and important handling settings such as DAS and ARR.
+    \item The project shall contain the module "Kris's Engine", a module that will handle the backend tasks such as dynamic creation of object, loading of textures and a networking thread.
+    \item The game shall contain a "Classic mode", a pygame 1-to-1 recreation of the original game. It should look the same, contain all original settings and game modes, maintain the original handling and AI with no noticeable changes, bar performance improvements and the ability to use multiple input devices.
+    \item The game shall contain an "Enhanced mode", an improved version of Classic mode that adds new features. These new features will include:
+    \begin{itemize}
+        \renewcommand\labelitemi{--}
+        \item An online leaderboard. This online leaderboard shall use a mySQL database running on a server that can be accessed through HTTP requests, with the server running my own merge sort algorithm to deliver the data in descending order.
+        \item The ability to save replay files. These shall be in a custom file format that efficiently uses bits to represent input data that can be recreate on a user's computer to produce a replay.
+        \item An expanded 16:9 aspect ratio
+        \item General bug fixes, such as fixing the score counter freeze in exercise mode
+        \item Support for the Tsu ruleset (i.e. cancelling garbage, bonuses for perfect clears, etc.)
+    \end{itemize}
+    \item In addition, the possibility of allowing increased customisability, such as custom texture support, custom handling settings, custom resolutions, etc. if the project is on good pace
+    \item The ability for me or the end-user to easily implement new AI algorithms that the user can play against
 \end{itemize}
 
-Version 0.2 alpha
+\subsubsection{Extension objectives}
 
-Introduce the necessary code for multiplayer (handles code for games against an opponent i.e. CPU, NOT CODE FOR ONLINE MULTIPLAYER.) and code all AI opponents into the game.
+If the project goes well, the aim is to include:
 \begin{itemize}
     \renewcommand\labelitemi{--}
-    \item Code algorithms for all 13 AI opponents included in the story mode. This should be done in a modular fashion, such that it is easy for I, or someone attempting to modify the game, to create a new opponent with unique AI.
-    \item Introduce code to accept different input methods.
-    \item With this multiplayer code in place, it should not be difficult to add local 2 player mode. This will then mean the game has all modes from the original, thus completing the gameplay for classic mode.
-    \item Iron out niche mechanics such as Has Bean and Big Bean.
-    \item Create and begin adding minor enhancements to Enhanced mode, such as introducing a simple REST API based SQL score and time leaderboard for exercise mode
+    \item Real-time online multiplayer using web sockets
+    \item My own algorithmically efficient AI, capable of playing the game well
 \end{itemize}
 
-Version 0.3 beta
-
-Introduce non-essential cosmetic features that will make the program useable and user friendly such as menus and transition animations. This version will be the first that will be released to a select few individuals for testing and ironing out of bugs. This version will meet all of the base requirements for the project, further updates shall exist as extension goals.
-\begin{itemize}
-    \renewcommand\labelitemi{--}
-    \item Add menus and settings
-    \item Fully animate sprites and transitions, allow the whole game to be accessible without the use of debug commands
-    \item Create a simple C++ installation script that installs the game and it's pre-requisites for easy distribution and testing
-\end{itemize}
-
-Version 0.4 beta
-
-This version will focus on the introduction of online multiplayer through web sockets and server programming. Being an extension goal, the method behind achieving this is more vague and shall be revealed if we get to that point.
-
-\vspace{0.3cm}
-
-Version 0.5 beta
-
-If I have time I will attempt to create an ideal algorithm for playing the game itself, a perfect opponent to train against, and make this available to players. Bug fixes and finalisations in addition to taking requests from players about potentially adding more gamemodes. Bar the algorithm creation this is probably beyond the scope of this project.
 \end{document}
