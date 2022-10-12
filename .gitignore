@@ -1,3 +1,4 @@
+Fusion.ini
 NEA.aux
 NEA.fdb_latex
 NEA.fls
@@ -5,4 +6,5 @@ NEA.log
 NEA.out
 NEA.synctex.gz
 NEA.toc
+NEA.fdb_latexmk
 __pycache__/

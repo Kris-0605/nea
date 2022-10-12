@@ -181,17 +181,255 @@ Disadvantages:
     \item Tsu ruleset, unable to be changed
 \end{itemize}
 
+\subsection{End User Input}
+
+Being a popular game, many people enjoy the Puyo Puyo franchise, but the best people to survey for this project were the people who were most familiar with DRMBM specifically - speedrunners. A lot of the research in this document was greatly helped by the members of the "Puyo Speedrun" Discord server, and the contributers to the DRMBM-specific channel they have there.
+In order to efficiently collect statistical end user input, a form was created using Microsoft Forms, a PDF version of which can be found here: \href{https://github.com/Kris-0605/nea/blob/master/documentation/NEA.pdf}{https://github.com/Kris-0605/nea/blob/master/documentation/NEA.pdf}
+
+Question 1: Have you played Dr Robotnik's Mean Bean Machine before?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Yes
+    \item No
+    \item Other Puyo Puyo game
+\end{itemize}
+Only one answer was permitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey1.png}
+    \caption{\label{fig:survey1}Results to the first survey question.}
+\end{figure}
+
+The only notable thing about this question is that anyone who answered "No" was taken to the end of the form and was unable to answer any other questions. Thus, only 4 people continued to fill out the rest of the form.
+\\\\
+Question 2: Which modes in DRMBM are you experienced with and enjoy using?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Scenario mode
+    \item 1P VS. 2P mode
+    \item Exercise mode
+    \item Other
+\end{itemize}
+Any number of answers were pemitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey2.png}
+    \caption{\label{fig:survey2}Results to the second survey question.}
+\end{figure}
+
+No-one answered this question, thus nothing meaningful is gained from it.
+\\\\
+Structure
+"This project is intended to both remake the original game in it's purest form, apply enhancements to it, thus the game will be split into two modes, that will from now on be referred to as "Classic mode" and "Enhanced mode". Classic mode is intended to be an exact recreation of the original game, and Enhanced mode should contain any additions and improvements."
+\\\\
+A message explaining some of the games structure that is important to understand when considering survey questions, which will be discussed further in the documented design section.
+\\\\
+Question 3: Consider scenario mode's password feature. Enhanced mode will allow the player to use save files that store additional data such as score, times and replays. What do you believe is the best way for the password menu to be implemented?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Classic mode will use the same passwords from the original game in their original form, taking you to a level but not restoring data such as score
+    \item Classic mode will generate new unique password that stores a hidden save file, so that the user is still required to use a password, but this password restores data such as score when used
+    \item The password menu should be entirely replaced by save files in both modes
+    \item Other
+\end{itemize}
+Only one answer was permitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey3.png}
+    \caption{\label{fig:survey3}Results to the third survey question.}
+\end{figure}
+
+The results to this question were an exact 50/50 split, thus I shall stick to my original plan of having Classic mode use passwords in their original form without any additional data, and using save files for enhanced mode.
+\\\\
+Question 4: What is your opinion on scenario mode's difficulty?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Harder modes should be added to challenge more difficult players
+    \item Easier modes should be added to help new players
+    \item The difficulty options should remain the same in scenario mode, more customisable opponents should be available in a separate "training mode" in enhanced mode
+    \item I don't believe any changes should be made
+    \item Other
+\end{itemize}
+Any number of answers were pemitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey4.png}
+    \caption{\label{fig:survey4}Results to the fourth survey question.}
+\end{figure}
+
+The majority vote represented the solution that I believe would fit best and already planned on implementing: in both classic and enhanced mode, difficulty shall remain the same as in the original. However, in enhanced mode, you can play against customisable opponents, such as the same algorithms from scenario mode with different speeds, as well as new AI altogether.
+\\\\
+Question 5: The original game uses the OPP ruleset for scenario mode, the main difference being that garbage cannot be cancelled. What do you believe is the best configuration of rulesets?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Classic mode scenario mode should use the OPP ruleset to recreate the original game and Enhanced mode should allow the user to choose before starting a save file
+    \item Force OPP for scenario mode in both modes and allow players to choose Tsu when creating custom games
+    \item Other
+\end{itemize}
+Only one answer was permitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey5.png}
+    \caption{\label{fig:survey5}Results to the fifth survey question.}
+\end{figure}
+
+The only unanimous result in the entire survey, as well as the solution I was planning on implementing. I will talk more about rulesets in the documented design section.
+\\\\
+Question 6: Do you have any other additions or comments regarding scenario mode?
+This question permitted a text answer.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey6.png}
+    \caption{\label{fig:survey6}Results to the sixth survey question.}
+\end{figure}
+
+Response ID 2 makes a very valid point. In newer versions of puyo puyo, difficulty settings change the number of colours that appear in play between 3, 4 and 5, whereas being an older game DRMBM uses 5 puyo colours in all difficulty modes. I will be sure to include the suggestion in enhanced mode.
+\\\\
+Question 7: While ambitious, the plan is to eventually include online multiplayer in the game for enhanced mode. Which of the following modes would you be interested in using? 
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Customisable private rooms that you can invite other players to
+    \item Customisable public rooms, given in a listing that anyone can join
+    \item Ranked multiplayer, with a rating system
+    \item A super lobby (i.e. 20+ players)
+    \item Other
+\end{itemize}
+Any number of answers were pemitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey7.png}
+    \caption{\label{fig:survey7}Results to the seventh survey question.}
+\end{figure}
+
+All of the above are planned to be implemented, but the distribution of votes gives me a timeline with which to work on each feature.
+\\\\
+Question 8: When considering the Has Bean and Big Bean bonuses in exercise mode, which of the following statements do you agree with?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Has Bean and Big Bean should be toggleable when playing exercise mode in enhanced mode
+    \item Exercise mode attempts using Has Bean and Big Bean should use a separate leaderboard
+    \item Has Bean and Big Bean should always be forced in exercise mode since they are part of the game mode, and should be toggleable when playing custom games
+    \item Other
+\end{itemize}
+Any number of answers were pemitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey8.png}
+    \caption{\label{fig:survey8}Results to the eighth survey question.}
+\end{figure}
+
+The majority of people would like leaderboards to be split between runs that use Has Bean/Big Bean and runs that do not. This is surprising to me, but not particularly difficult to implement thus shall be included. This overrides the one person's comment about always forcing them.
+\\\\
+Question 9: In DRMBM, the score counter is capped at 99,999,999, and the puyo counter is capped at 9,999. In the original game, these counters froze on the event of a max out. How do you think a max out should be handled?
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item In Classic mode, the counter should freeze, in Enhanced mode the counter should physically expand to accommodate more digits
+    \item The counter should always freeze
+    \item The counter should always expand
+    \item Other
+\end{itemize}
+Only one answer was permitted.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey9.png}
+    \caption{\label{fig:survey9}Results to the ninth survey question.}
+\end{figure}
+
+A majority of people would like to implement the solution that I personally had in mind: freezing the counters in classic mode and allowing them to physically expand in enhanced mode, so this is what I shall implement. I understood that allowing the counters to freeze in classic mode would be important to keep because a popular speedrun of the game is trying to max out the score counter in the least possible time, and removing this bug would take away from one of the ways people enjoy the game.
+\\\\
+Question 10: As part of the project's requirements, I am going to include an online leaderboard. What stats do you think should be available as a leaderboard?
+This question permitted a text answer.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey10.png}
+    \caption{\label{fig:survey10}Results to the tenth survey question.}
+\end{figure}
+
+These are all fairly generic examples, but I do appreciate the link provided to a Japanese ranked BPuyo leaderboard to use as an example.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{bpuyo_leaderboard.png}
+    \caption{\label{fig:bpuyo_leaderboard}The ranked leaderboard from the Bpuyo website.}
+\end{figure}
+
+Question 11: Enhanced mode will allow the game to support a 16:9 aspect ratio. What do you believe should be used to fill the space?
+This question permitted a text answer.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey11.png}
+    \caption{\label{fig:survey11}Results to the eleventh survey question.}
+\end{figure}
+
+The solution to this problem remains to be determined, so I will probably fill it with empty space for now and see if I figure out something convenient later.
+\\\\
+Question 12: Below are other features that I plan to implement into Enhanced mode. Rate their importance.
+The options contained within rows were:
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item Custom texture support
+    \item Custom handling settings
+    \item Custom resolutions (any aspect ratio)
+    \item Allow for custom AI and bots
+    \item Simple modding API, mod installation built-in to the game
+\end{itemize}
+The options contained within columns were:
+\begin{itemize}
+    \renewcommand\labelitemi{--}
+    \item I actively dislike this
+    \item Would be nice to have, but not needed
+    \item Should be included in final release
+    \item Critical, prioritise this!
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{survey12.png}
+    \caption{\label{fig:survey12}Results to the twelth survey question.}
+\end{figure}
+
+All of the items listed are planned to be included, it is simply a matter of prioritising what the end user considers important.
+For custom textures, 3 people said it would be nice to have and 1 said it should be in the final release. The inclusion of custom texture support itself is fairly trivial to implement due to the nature of having to import textures using the engine anyway, the time-consuming part would be writing documentation that explains how people can create their own texture packs that would be compatible with the game. I now know that this should not be prioritised.
+
+Custom handling settings was the most devisive option, with each of the 4 applicants choosing separate options. I don't understand the rational behind actively disliking custom handling settings as the default will be the same as they are in the actual game, however it may be worth considering forcing certain handling settings in ranked matches or games that will be displayed on leaderboards; perhaps different leaderboards with enforced handling and custom handling? This will have to be considered.
+
+Custom resolutions received the same reception as custom textures - it would be nice to have but isn't overly important. Different aspect ratios are actually especially challenging and non-trivial to implement. My original design for the engine involved scene data containing a background image variable, however this static image doesn't account for different resolutions and aspect ratios. Thus in order to account for future support for multiple aspect ratios, the engine must be coded to accept the background as a function that draws the background. Then when coding scenes, the specific scene can decide the solution that is most appropriate for drawing the background, whether that be a solid colour, stretching an image to fit a resolution, having multiple images to support multiple aspect ratios or some kind of tiling solution.
+
+Custom AI and bots received a positive reception. I shall have to create an object that allows for the implementation of AI to create the CPUs in scenario mode, thus it shall be trivial to allow modders to run their own function within this class (with some kind of primitive virus protection by not allowing external modules to be accessed).
+
+The described "modding API" will simply be an expanded version of what is described above - allowing users to modify their game by importing new objects written by other users that are compatible with the engine, at the user's own risk.
+
+The survey was supposed to include a poll about replays, but unfortunately I forgot to include it. I can only assume it would be a desired feature.
+
 \subsection{Input, Data Processing, Output}
+
+The program is started with main.py. This script shall verify the integrity of local game assets using SHA hashing and querying a simple API on a web server, retrieving assets as necessary. Then, the script shall import Kris's Engine, an engine that shall be written and packaged by me with the game. 
+
+Kris's Engine is built upon the idea of two fundamental class templates Scene and Entity, which shall be further described within the Documented Design section of this report. The engine shall first initalise itself, loading assets and creating the networking thread. The engine shall then import the scene that is predefined by main.py, which will probably be title.py to load the title screen. From then, the engine must complete tasks every subframe (there are 60 frames and 600 subframes in a second) such as gathering keyboard/controller input information and running the update() task of all the entity objects that the engine is responsible for. These entity objects are then responsible for completing data processing and output (i.e. pygame rendering on screen) within their update function as appropriate.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=1\textwidth]{idpo.png}
-\caption{\label{fig:idpo}A simple diagram demonstrating the input the program will take from various input devices such as keyboards and controllers, in addition to data received from web a real-time websocket where applicable. This is then processed by a main script which makes the data available to various renderable classes, updates and renders them before pygame is used to display the output on the screen. This is heavily simplified.}
+\caption{\label{fig:idpo}An Input, Data Processing, Output diagram.}
 \end{figure}
 
 \subsection{Goals}
 
 The easiest way to demonstrate the various goal and features is to demonstrate what I intend to plan to add in each version. These versions will not necessarily be completed within the project's time-span as they may be extension goals and will be specified as such.
+
+Version 0 engine
+CCreate an importable version of the engine as described in the documented design, implementing the Scene and Entity classes that game functionality is to be built off.
 
 Version 0.1 alpha
 
@@ -199,8 +437,7 @@ The base version of the project. Should implement basic gameplay and functionali
 \begin{itemize}
     \renewcommand\labelitemi{--}
     \item Introduce basic start up script. Introduce basic repair and update functionality by hashing files and comparing against a simple HTTPS GET API.
-    \item Establish a basis for which to build the program up on. Initialise screen class that is rendered with while true loop and dynamically creates renderable objects with both update and render class methods. These are called in that order every frame. Update passes in input data, which the screen class is responsible for retrieving at the start of the frame.
-    \item Create classes and methods required for basic gameplay. The easiest thing to create will be "exercise mode", a simple single-player "play forever" scoring mode. Things such as leaderboards will not be introduced yet, only the basic gameplay.
+    \item Create classes and methods required for basic classic mode gameplay. The easiest thing to create will be "exercise mode", a simple single-player "play forever" scoring mode. Things such as leaderboards will not be introduced yet, only the basic gameplay.
     \item Code all the algorithms required for basic gameplay, such as randomly generating bean pairs and identifying colour groups without excessive iteration. Establish important gameplay constants such as the formula for fall speed, scoring, garbage puyos and important handling settings such as DAS and ARR.
 \end{itemize}
 
@@ -211,9 +448,9 @@ Introduce the necessary code for multiplayer (handles code for games against an 
     \renewcommand\labelitemi{--}
     \item Code algorithms for all 13 AI opponents included in the story mode. This should be done in a modular fashion, such that it is easy for I, or someone attempting to modify the game, to create a new opponent with unique AI.
     \item Introduce code to accept different input methods.
-    \item With this multiplayer code in place, it should not be difficult to add local 2 player mode. This will then mean the game has all modes from the original.
+    \item With this multiplayer code in place, it should not be difficult to add local 2 player mode. This will then mean the game has all modes from the original, thus completing the gameplay for classic mode.
     \item Iron out niche mechanics such as Has Bean and Big Bean.
-    \item Introduce a simple REST API based SQL score and time leaderboard for exercise mode
+    \item Create and begin adding minor enhancements to Enhanced mode, such as introducing a simple REST API based SQL score and time leaderboard for exercise mode
 \end{itemize}
 
 Version 0.3 beta
