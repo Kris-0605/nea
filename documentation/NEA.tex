@@ -1,10 +1,11 @@
-\documentclass{article}
+\documentclass{report}
 \usepackage[english]{babel}
 \usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
 
 \usepackage{graphicx}
 \usepackage{subcaption}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{minted}
 
 \setlength\parindent{0pt}
 
@@ -17,9 +18,9 @@
 
 \tableofcontents
 
-\section{Analysis}
+\chapter{Analysis}
 
-\subsection{Introduction and Background}
+\section{Introduction and Background}
 
 Dr Robotnik’s Mean Bean Machine is a 1994 Westernised port of Puyo Puyo for the Sega Genesis/Mega Drive. It is a game that I have enjoyed throughout my childhood on many different forms – cheap emulation consoles, the Sega Mega Drive Collection for Xbox 360, using Fusion emulator on PC among other forms. However, all of these present glaring issues that directly affect the enjoyment of the player – emulation consoles usually are slow with clunky controllers and are not good for much else and thus are not practical to use permanently; the Sega Mega Drive collection on Xbox 360 suffers with a noticeable input lag problem, with inputs sometimes taking hundreds of milliseconds to be processed, directly affecting how fast you can play; PC emulation either results in a small or blurry image and makes it difficult to play with others or share your scores and achievements.
 
@@ -27,13 +28,13 @@ The goal of this project is to solve these problems by creating a superior, nati
 
 If the goals above are reached, further extension goals include the introduction of my own custom AI opponents with algorithms designed for optimal, “perfect” gameplay and the use of web sockets to facilitate real-time online matches between two remote players.
 
-\subsection{Alternative Solutions}
+\section{Alternative Solutions}
 
 In this section I shall present my research on other Puyo Puyo games, compare the advantages and disadvantages of different versions from the perspective of the end user and take inspiration for my own project.
 
-\subsubsection{Emulation}
+\subsection{Emulation}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \begin{subfigure}{0.49\textwidth}
 \centering
@@ -78,14 +79,14 @@ Disadvantages:
     \item It is impossible to play with friends remotely (or if it is possible, then it’s too difficult for the average user to achieve)
 \end{itemize}
 
-\subsubsection{B Puyo}
+\subsection{B Puyo}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=0.3\textwidth]{bpuyo.png}
 \caption{\label{fig:bpuyo}A screenshot of B Puyo. Some text is broken running on an English computer.}
 \end{figure}
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=1\textwidth]{discord.png}
 \caption{\label{fig:discord}Information about B Puyo from a well known Japanese player.}
@@ -118,7 +119,7 @@ Disadvantages:
 
 \subsubsection{Project GelaVolt}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=1\textwidth]{gelavolt.png}
 \caption{\label{fig:gelavolt}A screenshot of GelaVolt running in a chromium-based web browser.}
@@ -149,9 +150,9 @@ Disadvantages:
     \item Is unstable and crashes regularly
 \end{itemize}
 
-\subsubsection{Puyo Puyo Tetris 2}
+\subsection{Puyo Puyo Tetris 2}
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=1\textwidth]{ppt2.png}
 \caption{\label{fig:ppt2}A screenshot of a versus battle, I'm playing Tetris and the CPU is playing Puyo Puyo.}
@@ -182,7 +183,7 @@ Disadvantages:
     \item Tsu ruleset, unable to be changed
 \end{itemize}
 
-\subsection{End User Input}
+\section{End User Input}
 
 Being a popular game, many people enjoy the Puyo Puyo franchise, but the best people to survey for this project were the people who were most familiar with DRMBM specifically - speedrunners. A lot of the research in this document was greatly helped by the members of the "Puyo Speedrun" Discord server, and the contributers to the DRMBM-specific channel they have there.
 In order to efficiently collect statistical end user input, a form was created using Microsoft Forms, a PDF version of which can be found here: \href{https://github.com/Kris-0605/nea/blob/master/documentation/NEA.pdf}{https://github.com/Kris-0605/nea/blob/master/documentation/NEA.pdf}
@@ -196,7 +197,7 @@ Question 1: Have you played Dr Robotnik's Mean Bean Machine before?
 \end{itemize}
 Only one answer was permitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey1.png}
     \caption{\label{fig:survey1}Results to the first survey question.}
@@ -214,7 +215,7 @@ Question 2: Which modes in DRMBM are you experienced with and enjoy using?
 \end{itemize}
 Any number of answers were pemitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey2.png}
     \caption{\label{fig:survey2}Results to the second survey question.}
@@ -237,7 +238,7 @@ Question 3: Consider scenario mode's password feature. Enhanced mode will allow 
 \end{itemize}
 Only one answer was permitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey3.png}
     \caption{\label{fig:survey3}Results to the third survey question.}
@@ -256,7 +257,7 @@ Question 4: What is your opinion on scenario mode's difficulty?
 \end{itemize}
 Any number of answers were pemitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey4.png}
     \caption{\label{fig:survey4}Results to the fourth survey question.}
@@ -273,7 +274,7 @@ Question 5: The original game uses the OPP ruleset for scenario mode, the main d
 \end{itemize}
 Only one answer was permitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey5.png}
     \caption{\label{fig:survey5}Results to the fifth survey question.}
@@ -284,7 +285,7 @@ The only unanimous result in the entire survey, as well as the solution I was pl
 Question 6: Do you have any other additions or comments regarding scenario mode?
 This question permitted a text answer.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey6.png}
     \caption{\label{fig:survey6}Results to the sixth survey question.}
@@ -303,7 +304,7 @@ Question 7: While ambitious, the plan is to eventually include online multiplaye
 \end{itemize}
 Any number of answers were pemitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey7.png}
     \caption{\label{fig:survey7}Results to the seventh survey question.}
@@ -321,7 +322,7 @@ Question 8: When considering the Has Bean and Big Bean bonuses in exercise mode,
 \end{itemize}
 Any number of answers were pemitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey8.png}
     \caption{\label{fig:survey8}Results to the eighth survey question.}
@@ -339,7 +340,7 @@ Question 9: In DRMBM, the score counter is capped at 99,999,999, and the puyo co
 \end{itemize}
 Only one answer was permitted.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey9.png}
     \caption{\label{fig:survey9}Results to the ninth survey question.}
@@ -350,7 +351,7 @@ A majority of people would like to implement the solution that I personally had 
 Question 10: As part of the project's requirements, I am going to include an online leaderboard. What stats do you think should be available as a leaderboard?
 This question permitted a text answer.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey10.png}
     \caption{\label{fig:survey10}Results to the tenth survey question.}
@@ -358,7 +359,7 @@ This question permitted a text answer.
 
 These are all fairly generic examples, but I do appreciate the link provided to a Japanese ranked BPuyo leaderboard to use as an example.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{bpuyo_leaderboard.png}
     \caption{\label{fig:bpuyo_leaderboard}The ranked leaderboard from the Bpuyo website.}
@@ -367,7 +368,7 @@ These are all fairly generic examples, but I do appreciate the link provided to 
 Question 11: Enhanced mode will allow the game to support a 16:9 aspect ratio. What do you believe should be used to fill the space?
 This question permitted a text answer.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey11.png}
     \caption{\label{fig:survey11}Results to the eleventh survey question.}
@@ -394,7 +395,7 @@ The options contained within columns were:
     \item Critical, prioritise this!
 \end{itemize}
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{survey12.png}
     \caption{\label{fig:survey12}Results to the twelth survey question.}
@@ -413,13 +414,13 @@ The described "modding API" will simply be an expanded version of what is descri
 
 The survey was supposed to include a poll about replays, but unfortunately I forgot to include it. I can only assume it would be a desired feature.
 
-\subsection{Input, Data Processing, Output}
+\section{Input, Data Processing, Output}
 
 The program is started with main.py. This script shall verify the integrity of local game assets using SHA hashing and querying a simple API on a web server, retrieving assets as necessary. Then, the script shall import Kris's Engine, an engine that shall be written and packaged by me with the game. 
 
-Kris's Engine is built upon the idea of two fundamental class templates Scene and Entity, which shall be further described within the Documented Design section of this report. The engine shall first initalise itself, loading assets and creating the asynchronous networking thread. The engine shall then import the scene that is predefined by main.py, which will probably be title.py to load the title screen. From then, the engine shall use two threads: one for rendering and one for updating entities. Each entity must have the methods render and update, where the engine on seperate threads will call update 600 times per second and render a variable amount of time, that is able to be changed by the user, that will default to 60. The update method for an entity is responsible for data processing and the render method is responsible for any visual output that may be needed.
+Kris's Engine is built upon the idea of two fundamental class templates Scene and Entity, which shall be further described within the Documented Design section of this report. The engine shall first initalise itself, loading textures and initialising modules such as aiohttp and pygame. The engine shall then import the scene that is predefined by main.py, which will probably be title.py to load the title screen. From then, the engine shall use two threads: one for rendering and one for updating entities. Each entity must have the methods render and update, where the engine on seperate threads will call update 600 times per second and render a variable amount of time, that is able to be changed by the user, that will default to 60. The update method for an entity is responsible for data processing and the render method is responsible for any visual output that may be needed.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \centering
 \includegraphics[width=1\textwidth]{idpo.png}
 \caption{\label{fig:idpo}An Input, Data Processing, Output diagram.}
@@ -449,17 +450,16 @@ Kris's Engine is built upon the idea of two fundamental class templates Scene an
             \end{itemize}
         \end{itemize}
         \item Initialise pygame and take ownership of all pygame objects, such as the screen object being located at Engine.screen
-        \item Initialise multiple threads:
+        \item Initialise two threads:
             \begin{itemize}
-                \item A thread shall be responsible for handling the update method of every entity that is owned by the Engine. The aim is to run this 600 times per second.
-                \item A thread shall be responsible for handling the render method of every entity that is owned by the Engine. The aim is to run this at least 60 times per second, however due to the constant rate of the update function, this could be ran at any speed without affecting any game logic. For this reason, counter-intuitively it is critical that things that must be done at a constant rate, such as animations, rely on the update function instead of the render function, and the render function should be used only for drawing.
-                \item An asynchronous thread will be responsible for handling networking tasks.
+                \item A thread shall be responsible for handling the update method of every entity that is owned by the engine. The aim is to run this 600 times per second.
+                \item A thread shall be responsible for handling the render method of every entity that is owned by the engine. The aim is to run this at least 60 times per second, however due to the constant rate of the update function, this could be ran at any speed without affecting any game logic. For this reason, counter-intuitively it is critical that things that must be done at a constant rate, such as animations, rely on the update function instead of the render function, and the render function should be used only for drawing.
             \end{itemize}
-        \item Contain a method for loading scenes that Entities can invoke
-        \item Contain methods that allow Entites to easily make requests on the networking thread, without causing the program to freeze
+        \item Contain a method for loading scenes that entities can invoke
+        \item Contain methods that allow entites to easily make requests without causing the program to freeze
         \item Contain methods for handling backend tasks such as changing resolution, setting the window to fullscreen, etc.
-        \item Contain methods for easily playing sounds on different channels. The Engine is responsible for ensuring that a sound can always be played and that the number of pygame mixer channels is never exceeded.
-        \item The Engine could contain generic methods that prevent repeating complex code, for example a method that creates a spray of particles. This is something that would be time consuming to implement into every Entity that requires it and would be incredibly resource intensive if an Entity was used for each particle, thus it makes sense to have it as a function that can be used by any program that uses the engine, with a replaceable texture.
+        \item Contain methods for easily playing sounds on different channels. The engine is responsible for ensuring that a sound can always be played and that the number of pygame mixer channels is never exceeded.
+        \item The engine could contain generic methods that prevent repeating complex code, for example a method that creates a spray of particles. This is something that would be time consuming to implement into every entity that requires it and would be incredibly resource intensive if an entity was used for each particle, thus it makes sense to have it as a function that can be used by any program that uses the engine, with a replaceable texture.
     \end{itemize}
     \item The game shall be split into two modes, Classic mode and Enhanced mode.
     \begin{itemize}
@@ -472,7 +472,7 @@ Kris's Engine is built upon the idea of two fundamental class templates Scene an
         \end{itemize}
         \item Classic mode shall be developed first, and Enhanced mode will be built upon Classic mode. The aim is to include the following changes:
         \begin{itemize}
-            \item A customisable resolution. Certain Scenes such as the animated segments before levels in scenario mode will need to be locked to certain aspect ratios such as 4:3 or 16:9 in order to look correct, whereas other Scenes can function at any aspect ratio. Due to pygame not allowing windows to be resizeable, there will have to be a setting to allow the user to change the resolution, and locked aspect ratios shall be achieved by black bars, which will be rendered by the background method of a given Scene object.
+            \item A customisable resolution. Certain scenes such as the animated segments before levels in scenario mode will need to be locked to certain aspect ratios such as 4:3 or 16:9 in order to look correct, whereas other scenes can function at any aspect ratio. Due to pygame not allowing windows to be resizeable, there will have to be a setting to allow the user to change the resolution, and locked aspect ratios shall be achieved by black bars, which will be rendered by the background method of a given scene object.
             \item The ability to store and play replays of games from any mode.
             \item Save files for scenario mode.
             \item The ability to customise handling, such as the amount of time before a bean starts to repeat movement when the left or right key is pressed down (this is a value known as "DAS")
@@ -484,7 +484,7 @@ Kris's Engine is built upon the idea of two fundamental class templates Scene an
     \end{itemize}
 \end{itemize}
 
-\subsubsection{Extension objectives}
+\subsection{Extension objectives}
 
 If the project goes well, the aim is to include:
 \begin{itemize}
@@ -493,4 +493,146 @@ If the project goes well, the aim is to include:
     \item Implementation of my own custom AI.
 \end{itemize} 
 
+\chapter{Documented Design}
+
+\section{Language and rendering module}
+
+The project shall be written in Python 3 because it is the language I have the most experience with. The third-party Pygame module shall be used for rendering graphics to the screen because of it's well-written documentation and ease-of-use.
+
+\section{The Engine}
+
+\subsection{Why?}
+
+Stacker games like Puyo Puyo at a competitive levels have a lot going on very fast at a competitive level. It is important that there is very little "input lag" (the amount of time between pressing a button and an action happening on-screen) and processing of the game's backend will need to be fast and responsive. When considering the fast-paced, accurate gameplay of a game like this, the minimum acceptable speed for the games backend to be running in terms of updating things like board state would be a rate of 600 updates per second. Furthermore, it is important that this number be a constant rate, for ease of storing replays and to ensure that when comparing the games of two competitve players that neither has an unfair advantage.
+
+However, this presents a problem: the majority of computers are unable to process graphical ouput at a rate of 600 frames per second, it is simply too fast for most computers to handle. Somehow, the program needs to be capable of handling the updating of the game's state, and rendering the games graphics, at independant rates. One potential solution to this could be something to similar to what a game like Minecraft does, running a server in an entirely separate process to where the game's rendering takes place, and then passing information over a local network. I would prefer to avoid this solution as network packets do not allow you to easily transfer Python objects directly, which will limit what the software is capable of and make development harder in the future. Instead, I intend to implement a multithreaded solution, which is what the engine exists to manage.
+
+Before we continue it is important to understand how threading works in Python. Python has a feature known as the Global Interpreter Lock, or GIL for short. The GIL ensures that Python bytecode can only execute on one thread at once, ensuring that data cannot be corrupted by having multiple threads accessing it at once.
+
+When trying to run a program across multiple CPU cores, a developer in python has three options provided with Python's standard library: the threading, multiprocessing and asyncio modules. 
+
+The threading module allows the user to run tasks across multiple CPU cores that share the same space in memory, therefore meaning it is affected by the GIL. This means that for computationally intensive tasks, threading is not faster as only thread can run bytecode at a time. However, when considering programs that require waiting, such as using the sleep function, waiting for input from the user or waiting for a response from a network request, other threads can process while this waiting is taking place. Threading is also very useful for structuring a program.
+
+The multiprocessing module is capapble of speeding up programs on multi-core machines by running multiple processes. However, this has the disadvantage of these processes not sharing memory, making it difficult to share data between them.
+
+The asyncio module implements asynchronous development in python. Many tasks are completed out of order on a thread. It is faster for things that do not need to be ran in order and require waiting, such as completeing networking tasks.
+
+Multiprocessing would make sharing data complicated and asyncio wouldn't be appropriate due to it's out-of-order execution so my proposed solution is to use the threading module. This may seem confusing at first due to there being no major speedup, however the threading module solves the problem given above: updating and rendering can be run on separate threads.
+
+The Engine class is a class that is designed to handle these threads. If seperate threads are handling the game's backend and frontend, then the backend can run at a constant 600 updates per second using sleep statement and rendering can run at a different rate on a different thread. 
+
+There are further tasks which the engine must handle, which are described below.
+
+\subsection{Engine utility methods}
+
+\subsubsection{Input and pygame events}
+
+Pygame events are unintuitive; you are required to iterate through a generator object every frame or the program will freeze, and even then the events that are returned aren't particularly user friendly. Due to their link to frames the rendering thread will have to iterate through events however they will be accessible using a public attribute of the engine. Additionally for ease of use there shall be several methods of the engine that simply return True or False for queries such as "has this key been pressed" or "is the mouse within this radius of this point/within this box". This should make entity code easier to read.
+
+\subsubsection{Networking}
+
+As mentioned before, asyncio is very useful for making network requests. For this reason, the module aiohttp will be used to make network requests on the main thread. Executing requests on the main thread like this prevents the program from freezing by not blocking other threads. However, executing the requests on a separate thread presents a problem of how to return the information, since the function that tries to make the request cannot simply return the information, as this would block the rest of that thread's objects from being updated.
+
+My proposed solution is as follows: When an object needs to make a request, it shall call a method of the Engine class. The Engine class will have a counter (starting at 0 and increasing by 1 every time this subroutine is called). Calling the method will increase this counter, and append the information required to make the request (such as the type of request, the url, the data to be passed, etc.), which will have been passed in as keyword parameters, to a dictionary (that is a variable of the engine class), using the value of the counter as the key and the information required to make the request as the value. The value of the counter should then be returned to be saved by the object that made the request.
+
+Every 0.01 seconds, the main thread will execute all the requests in the dictionary as aiohttp asynchronous requests (note that these are non-blocking), with the results to be saved in a second dictionary, with the key being the same counter value and the value being the results from the returned request (note that these will have to be parsed because the original request object must be parsed asynchronously and thus cannot be used by object that made the request, which is synchronous).  
+
+Then, when the object that wanted to make the request is later called again, it should call a second method of the Engine class, this time with the originally returned counter value as a parameter, acting as an ID for the request that was made. If the main thread has not yet completed execution of the request, then the method should return a None value, and if the request has been completed then the value stored in the dictionary should be stored in a local variable, deleted from the dictionary to save on memory consumption and finally returned to the object. Using this ID system, requests can be made by objects in a non-blocking manner, and using aiohttp will allow a large number of requests to be made in a short amount of time for tasks such as the retrieval of assets from an external server.
+
+\subsubsection{Sound}
+
+Pygame has two ways to play sound: the simpler mixer.music class and the advanced mixer class. mixer.music is not appropriate for this project, because it only allows you to play one sound file at a time, thus mixer is required. However, the mixer class comes with some limitations, and it's these limitations that the engine class exists to overcome.
+
+pygame.mixer uses channels, where any channel can play one sound at a time. Pygame defaults to using 8 channels, and the number of channels can be increased or decreased at any time. I want any object that wishes to play a sound to be able to do so with a single function call, thus the engine will have a method that accepts sound bytes as input. The engine will then create a new channel if necessary and play the sound, returning an integer that corresponds to the channel. This then allows the object to use other engine methods to control the channel, such as pausing or stopping the sound. Other useful engine sound methods include the ability to stop all playing sound.
+
+pygame.mixer accepts .ogg files as input, to allow multiple sounds to be played as once. However, for the convenience of modders and people attempting to alter the game's assets, I believe that any audio file should be acceptable as an asset. For this reason, the program shall be distributed with an FFmpeg binary. FFmpeg is a powerful, open-source media conversion tool. In this case, it will be used by the engine to convert other audio files to .ogg. Upon initalisation, the engine will load the textures in using their original filenames and extensions. Then, a temporary folder will be created, and for any file with an extension contained within a hard-coded list of audio files such as .wav or .mp3, FFmpeg will be launched as a subprocess to convert the files to .ogg in the temporary folder, the new files will be loaded and converted to pygame.mixer.Sound objects, still referred to by their original filenames, and the temporary folder will be deleted.
+
+\subsubsection{Graphics}
+
+There are some complex, commonly used functions that don't make sense to re-write every time you want to use them, and thus it makes sense to simply have a method for them. An example that comes to mind would be particles: the engine could have a method where a texture, position and particle count and whether the particles should have gravity would be passed in, and an object would be created to fulfill that task, instead of being down to the programmer using the engine to implement. An exhaustive list won't be provided here as I simply don't know what will be useful, and what I'll have time for at this point.
+
+\subsubsection{Logging}
+
+This engine will be written in Python 3. Python 3's print function is slow, slow enough that I feel the need to directly flush to stdout for a program that is completing this many operations on a single CPU core. The engine will two private attributes, the console log and the full log. Log functionality will require five built-in python modules: sys, os, threading, atexit and time. 
+
+The engine will have a method that can be called to append something to the log. A single parameter will be used to pass in what should be appended to the log as a string. The method will then convert this string into a standard format: the threading module will be used to find the ID of the thread that the function was called from and the time function will be used to give the log entry a timestamp, representing the number of seconds since the program started. Then a coloured version of the log (using ANSI escape codes) will be appended to the console log and a plaintext version to the full log. An example log entry could look like this:
+
+\vspace{0.5cm}
+
+\textcolor{magenta}{Welcome to Kris's Engine!}
+
+Log initialised at 1668108523.8011909
+
+\textcolor{magenta}{[Main thread at 0.1000968]}
+
+Warning! Failed to convert asset "purple13.png" to Pygame surface object. Corrupted file? Purging from textures.
+
+\textcolor{red}{[Update thread at 39.7935968]} Error! ZeroDivisionError updating Entity of type AI, skipping.
+
+\textcolor{blue}{[Render thread at 51.615771]} Error! BaseException render Entity of type Bean, skipping.
+
+\textcolor{magenta}{[Update thread at 161.0327687]} Warning! Last update took 2.3ms longer than allocated, the game is lagging!
+
+\vspace{0.5cm}
+
+Upon engine initialisation, first the code "os.engine("")" must be ran. This will enable ANSI escape code colours on Windows, and do nothing on other platforms. A function shall exist that simply dumps the full log to a log text file, and this function should be queued up using atexit. This module will ensure that the function always executes when the program terminates. Then, a thread will be started: this thread shall every 0.1 seconds use sys to flush the contents of the console log to stdout (the console) if it's not empty, and then empty it.
+
+\subsubsection{Global error handling}
+
+We can use sys.excepthook to create a function that globally handles errors by reporting the error to both the user and a remote web server without the program crashing.
+
+\subsection{Object structure}
+
+The engine is a complex object oriented model that work on the basis of all composed classed inherited from two classes: scenes and entities. Since I'll probably end up naming the engine Kris's Engine, when importing kris\_engine.main we now have kris\_engine.main.Engine, kris\_engine.main.Scene and kris\_engine.main.Entity.
+
+\subsubsection{Entity}
+
+An Entity represents a building block, an element of what should be going on. In it's simplest capacity, an entity is something you want to draw to the screen, however an entity doesn't have to be visible and can be used only for processing in order to keep the code's structure cleaner.
+
+For an Entity object to be valid, it must have at least two methods: update and render. If an entity does not have this, the engine will error, thus all valid entities must inherit from kris\_engine.main.Entity. kris\_engine.main.Entity will contain the two methods update and render, which both take no arguments other than themselves (self), as all information they need can be gotten from the engine (it of course makes sense for the entity object to contain the engine object within itself as an attribute). Render will draw to the screen a message detailing that this entity hasn't been correctly overwritten, a similar message will be appended to the log upon initalisation, and the update function will simply pass and not do anything. Inheriting from this class ensures that an object has to have the update and render methods, giving it less chance of erroring the engine. It is easy to verify whether an object has inherited from this class using the "\_\_mro\_\_" attribute. The engine simply has to check whether the default entity class is contained within the \_\_mro\_\_ tuple and if it isn't, an object that is supposed to be an entity should be discarded and an error message logged.
+
+Scenes override the entities that are loaded, but what if an entity should persist across scenes? Say, a message feature that should always be accessible in game or a custom music player add-on. For this reason all entities should have a "persist" attribute. This value will be a boolean True or False, and will default to False. False means the entity object should be destroyed when loading in to a new scene and True means the entity should not be destroyed. Persistant objects are expected to be rendered first relative to all other objects, and objects from a new scene shall be appended after persistent entities in the list of entities.
+
+It may be useful to be able to uniquely identify an entity, especially for logging purposes. Thus, upon initialisation, an entity shall be assigned a public "id" attribute by the engine. This shall be unique and shall be obtained using a counter from the engine class that is increased every time an entity is initialised. Additionally, so that entities may interact with other entities, a public attribute of the engine, "entities", will house a dictionary where the key is the public id of the entity and the 
+
+Any textures that are accessed by an entity should use a method of the engine class, get\_texture, passing in a string referring to the name of the texture file (texture file names must be unique), which will then return the pygame surface object for the texture. There will be a deload\_texture method for if an entity knows that a texture is no longer required, such as during a cutscene.
+
+Any other attributes are the responsibility of the developer using the engine to assign and manage.
+
+\subsubsection{Scene}
+
+Separate scenes should be split into separate python files, which should make it easy to find, read, edit and manage scenes. 
+
+A valid scene should meet the following:
+
+\begin{itemize}
+\renewcommand\labelitemi{--}
+    \item A scene should be contained within a python script file
+    \item The first line of the file should be "from kris\_engine import Scene"
+    \item The file should contain a single class
+    \item The last thing this class inherited (as shown by the \_\_mro\_\_ attribute) should be the kris\_engine.main.Scene class.
+    \item Additionally, the engine should check for the string "\_\_mro\_\_" within the scene's code, to prevent potential modification.
+\end{itemize}
+
+All of these verification steps are justifiable.
+
+\begin{itemize}
+\renewcommand\labelitemi{--}
+    \item Using a python file to contain a single scene makes it easy to add new scenes without modifying existing files.
+    \item Any engine project will contain multiple python files. Using the first line to import the scene class allows the engine to quickly identify which files should be considered scene classes and which should be ignored. If a file that isn't a scene wants to import the scene class, this can easily be bypassed by importing other modules first or adding a comment.
+    \item By having a scene not contain the entities that it will create within its own file and instead having to import them, entities that are used in multiple scene files will not be written out multiple times.
+    \item The \_\_mro\_\_ string prevents the engine from running arbitrary code from a file that is not a valid scene class. Additionally we can check if the attribute is referenced within the scene itself, a basic way to check if the value may have been modified. This is a simple way to prevent the user from running a potentially invalid or malicious scene file.
+\end{itemize}
+
+It is the job of a scene file to define which entities should be present in a scene and provide useful information about things such as the framerate and update rates and the order entities should be rendered.
+
+A developer can set two optional attributes, framerate and updaterate. These are optional because if not given the engine will use hardcoded defaults.
+
+Depending on the scene a loading screen may be useful. So, a scene will have two attributes, "loading\_screen" and "loading\_screen\_entity". By default loading\_screen will be False but may be set to True by a scene. By default loading\_screen\_entity will refer to a built-in entity file that exists as a default loading screen. If set to any other value that entity will be loaded. There will be an attribute of the engine that the entity can access to monitor the progress of loading in order to allow a loading bar to exist.
+
+While this is happening of course, we want to be loading somethig. The get\_texture method mentioned earlier will either create a pygame surface object and cache it or return it if it's already been cached, so another convenient method of the engine class, load\_textures, will allow a scene during it's initialisation to pass in a list of strings and load all of the required textures.
+
+It is recommended that a scene 
+
+NOT FINISHED NOT FINISHED NOT FINISHED NOT FINISHED
 \end{document}

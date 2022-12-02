@@ -9,3 +9,5 @@ Fusion.ini
 *.fdb_latexmk
 __pycache__/
 emulator/
+.vscode/
+_minted-NEA/
