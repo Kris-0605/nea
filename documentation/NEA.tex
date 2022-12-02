@@ -635,4 +635,526 @@ While this is happening of course, we want to be loading somethig. The get\_text
 It is recommended that a scene 
 
 NOT FINISHED NOT FINISHED NOT FINISHED NOT FINISHED
+
+\section{Technical Solution}
+
+Due to the nature of how I've gone about this project, at this point in time I cannot show any algorithmic complexity, as the algorithmic complexity will be included in the gameplay. This file is the basis off of which the rest of my complex OOP model will be built. Though it's hard to tell from this script, gameplay elements will inherit from the Entity and Scene classes and the Engine class will be composed of entities and scenes (the relationship between entities and the engine is one of aggregation), and while the entities for the game have not been coded yet, the entities will be dynamically created and destroy as they are needed. While not given here explicitely this script lays down the foundations of a complex OOP model. Additionally, while a very basic example, you can see an example of encapsulation on line 428 (please ignore the class from 473 to 507 as while this uses encapsulation I did not write it.)
+Apologies for not having much to show for now but I promise there is much to come.
+
+\subsection{\_\_init\_\_.py}
+
+\begin{minted}[breaklines, linenos]{python}
+# pygame is a third-party module for rendering graphics and playing sound
+import pygame
+# Here, json is used to create a config file where settings can be stored
+import json
+# os is used for file system operations such as looking at files in a folder
+# as well as running commands on the command line to enable things like
+# coloured text inside the console.
+import os
+# Used for global except hook and dumping to stdout
+import sys
+# Used for managing threading
+import threading
+# Used for running function on program termination
+import atexit
+# Used for getting information about the current time and how long the program
+# has been running for as well as sleeping
+import time
+# platform is used to determine information about the system the code is running on
+# This is useful for things like selecting the correct FFmpeg binary
+import platform
+# subprocess is used for controlling FFmpeg
+# FFmpeg is used for converting audio files, and possibly later video files
+import subprocess
+# Right now just picks a random number
+import random
+
+# defining the main engine class
+class Engine:
+    # in python, __init__ is run when a class is initialised
+    # self refers to the object that is being initialised
+    def __init__(self):
+        # DO NOT USE WHILE TRUE
+        # Only self.running, so threads terminate
+        self.running = True
+        self.started = False
+
+        # Counter for generating unique integers, see the id property
+        self.__id = 0
+
+        self.init_log()
+        time.sleep(0.01) # Just to make sure the thread has started
+
+        self.append_log("Loading config file...")
+        self.load_config()
+
+        # Variables used to store the last time a message saying that
+        # the update or render threads were behind was sent so that
+        # the console doesn't get spammed
+        self.lag, self.lag2 = time.perf_counter(), time.perf_counter()
+
+        self.append_log("Spawning threads...")
+        self.__update_thread = threading.Thread(target=self.update_loop)
+        self.__update_thread.start()
+        self.__render_thread = threading.Thread(target=self.render_loop)
+        self.__render_thread.start()
+
+        self.append_log("Initialising pygame...")
+        pygame.init()
+        self.append_log("Initialising pygame mixer...")
+        pygame.mixer.init()
+
+        self.append_log("Loading default assets...")
+        # I made missing.png but it's based on an industry standard
+        # I made missing.ogg in Audacity it's 1 second of 0.8dB 1000Hz sine wave
+        # temp_shop.ogg from https://undertale.fandom.com/wiki/Tem_Shop_(Soundtrack)
+        # ComicMono.ttf from https://dtinth.github.io/comic-mono-font/
+        self.__assets = {}
+        self.__fs_map = {x:x for x in os.listdir(self.engine_path+"\\resources")}
+        for x in self.__fs_map:
+            match x[-3:].lower():
+                case "ogg":
+                    self.__assets[x] = pygame.mixer.Sound(self.engine_path+"\\resources\\"+x)
+                case "png":
+                    self.__assets[x] = {"raw": pygame.image.load(self.engine_path+"\\resources\\"+x)}
+                case "ttf":
+                    self.__assets[x] = pygame.font.Font(self.engine_path+"\\resources\\"+x, 100)
+
+        # It's handy to be able to organise textures into folders
+        # This map let's you use just a texture's file name to refer to it's path
+        # It also calls ffmpeg for audio files that are not ogg or wav
+        # since ogg and wav are the only thing pygame's mixer supports
+        self.append_log("Mapping file system...")
+        self.__fs_map |= self.map_fs(self.resource_path)
+        
+        # Ordered list, order decides rendering and updating order
+        self.__entities = []
+        # integer id: entity object
+        self.entity_id = {}
+        
+        # Create window
+        self.append_log(f"Creating window, (width, height) = ({self.width}, {self.height})")
+        self.screen = pygame.display.set_mode((self.width,self.height))
+        # Set window title
+        pygame.display.set_caption("Kris's Engine")
+
+        # This will be changed in a later version to be passed into the class
+        self.append_log("Loading default scene...")
+        self.load_scene(Scene(self))
+
+        # pygame is weird and getting events must be done on the main thread
+        # The event gotten variable is set to False every frame and True every time events are fetched
+        # pygame will crash if events are not gotten every frame so this variable prevents a frame from 
+        # proceeding before events are collected, however this should be hardly needed as there is a sleep
+        # statement to sync it with the framerate. The subtraction of 1ms is to account for the time it 
+        # take to run the get events function.
+        self.events = []
+        while self.running:
+            self.get_events()
+            self.event_gotten = True
+            time.sleep((1/self.render_rate)-0.001)
+        pygame.quit()
+
+    def init_log(self):
+        # Allow coloured console text on Windows
+        os.system("")
+        self.__start_time = time.perf_counter() # Used for calculating how long the program has been running
+        # Use the built in thread ID system to assign colours to threads
+        self.__threads = {threading.get_ident(): {"colour": Colour(0xff00ff), "name": "Main"}}
+        # The coloured thing we dump to the console
+        self.__console_log = Colour(0xff00ff)+"Welcome to Kris's Engine!\n"
+        # The thing we dump to a text file
+        self.__full_log = "Welcome to Kris's Engine!\n"
+        self.log_loop = 0.1 # Number of seconds between dumping to console
+        atexit.register(self.exit_log) # Log will be saved on termination
+        threading.Thread(target=self.loop_log).start() # Create logging thread
+
+    def loop_log(self):
+        self.__threads[threading.get_ident()] = {"colour": Colour(0x10ebe1), "name": "Logging"}
+        self.append_log(f"Logging thread initialised at {time.time()}")
+        while self.running: # Repeat
+            sys.stdout.write(self.__console_log) # Dump to console
+            self.__console_log = "" # Clear console log
+            time.sleep(self.log_loop) # Wait
+
+    def exit_log(self): # Dump log to text file on program termination
+        with open(self.log_path, "a") as f:
+            f.write(self.__full_log)
+            f.write("\n")
+
+    def append_log(self, message):
+        # Get information about the thread that the logging request is being made from
+        # Pick a colour if we don't know about it
+        t = threading.get_ident()
+        if t not in self.__threads:
+            self.__threads[t] = {"colour": Colour(random.randint(0, (2**24)-1)), "name": "Unknown"}
+        thread = self.__threads[t]
+        # Only call time function once so time is consistent across logs
+        name_and_time = f"{thread['name']} thread at {time.perf_counter()-self.__start_time}"
+        self.__console_log += f"{thread['colour']}[{name_and_time}] {Colour(0xffffff)}{message}\n"
+        self.__full_log += f"[{name_and_time}] {message}\n"
+
+    # reads from config file, converts json to dictionary, sets config attribute to data and returns data
+    def load_config(self):
+        # defaults
+        self.width, self.height = 1280, 720
+        self.resource_path = "resources"
+        self.engine_path = "kris_engine"
+        self.log_path = "kris_engine\\engine_log.txt"
+
+        # test for config file
+        self.config_exists = os.path.exists("config.json")
+        if self.config_exists:
+            with open("config.json", "r") as f:
+                self.config = json.loads(f.read())
+        else:
+            self.config = {}
+            self.append_log("Warning! Config file \"config.json\" was not found in parent directory! Are you running the script from the right place?")
+        
+        # If attribute is found in config data, it is loaded, otherwise use default
+        if "width" in self.config:
+            self.width = self.config["width"]
+            self.append_log(f"width \"{self.width}\" found in config.json, loaded.")
+        else:
+            self.append_log(f"No width found in config.json, using default width \"{self.width}\"")
+
+        if "height" in self.config:
+            self.height = self.config["height"]
+            self.append_log(f"height \"{self.height}\" found in config.json, loaded.")
+        else:
+            self.append_log(f"No height found in config.json, using default height \"{self.height}\"")
+
+        if "resource_path" in self.config:
+            self.resource_path = self.config["resource_path"]
+            self.append_log(f"resource_path \"{self.resource_path}\" found in config.json, loaded.")
+        else:
+            self.append_log(f"No resource_path found in config.json, using default resource_path \"{self.resource_path}\"")
+
+        if "engine_path" in self.config:
+            self.engine_path = self.config["engine_path"]
+            self.append_log(f"engine_path \"{self.engine_path}\" found in config.json, loaded.")
+        else:
+            self.append_log(f"No engine_path found in config.json, using default engine_path \"{self.engine_path}\"")
+
+        if "log_path" in self.config:
+            self.log_path = self.config["log_path"]
+            self.append_log(f"log_path \"{self.log_path}\" found in config.json, loaded.")
+        else:
+            self.append_log(f"No log_path found in config.json, using default log_path \"{self.log_path}\"")
+
+        if "ffmpeg_override_path" in self.config:
+            self.ffmpeg_path = self.config["ffmpeg_override_path"]
+            self.append_log(f"ffmpeg_override_path \"{self.log_path}\" found in config.json, will be used as FFmpeg path.")
+        else:
+            self.append_log("No FFmpeg override found. Getting FFmpeg path...")
+            if self.get_ffmpeg(): # this is different for different OSs so needs a function
+                self.append_log(f"FFmpeg found successfully at {self.ffmpeg_path}, FFmpeg operations enabled.")
+            else:
+                self.append_log("Warning! FFmpeg not found or faulty, faulty installation or unsupported system. Advanced users can use their own binary and set \"ffmpeg_override_path\" in config.json")
+
+    # overwrites file with the config attribute converted to json format
+    def save_config(self):
+        with open("config.json", "w") as f:
+            f.write(json.dumps(self.config))
+        self.append_log("The config file was overwritten.")
+
+    def get_ffmpeg(self):
+        # Windows binary is version 5.1.2-essentials_build-www.gyan.dev from www.gyan.dev
+        # Mac x86_64 binary is version 5.1.2 from https://evermeet.cx/ffmpeg/
+        # Mac M1 binary is version 5.0.1 from https://github.com/eugeneware/ffmpeg-static/releases/tag/b5.0.1
+        # Everything except Windows is untested
+        p = platform.system()
+        if p == "Windows":
+            try: # if it runs we're probably fine
+                subprocess.run(self.engine_path+"\\ffmpeg\\windows_x86_64\\ffmpeg.exe", stderr=subprocess.PIPE)
+                self.ffmpeg_path = self.engine_path+"\\ffmpeg\\windows_x86_64\\ffmpeg.exe"
+            except:
+                self.append_log("Warning! FFmpeg not found!")
+                self.ffmpeg_path = False
+        elif p == "Darwin":
+            pass
+        else:
+            try: # same logic
+                subprocess.run("ffmpeg")
+                self.ffmpeg_path = "ffmpeg"
+            except:
+                self.ffmpeg_path = False
+                if p == "Linux": # Linux doesn't like static binaries but anyone using Linux is smart enough to install it themselves or doesn't need it
+                    self.append_log("FFmpeg not found! Linux users need to install themselves, this probably means running \"sudo apt install ffmpeg\" in your console but look up distro-specific instructions.")
+                else:
+                    self.append_log("FFmpeg not found! I don't recognise your system, so try obtaining a binary yourself and setting ffmpeg_override_path in config.json, or a global path variable to make \"ffmpeg\" accessible.")
+        return self.ffmpeg_path
+
+    def map_fs(self, resource_path, out={}):
+        for x in os.listdir(resource_path):
+            real_path = f"{resource_path}\\{x}"
+            if os.path.isdir(real_path):
+                out |= self.map_fs(real_path, out) # Recursively navigate folders
+            elif real_path.split(".")[-1].lower() in ["mp3", "aac", "flac", "wma"]:
+                ffmpeg_folder_path = resource_path+"\\ffmpeg_output\\"
+                z = real_path.split("\\")[-1]
+                new_path = ffmpeg_folder_path + z + ".ogg"
+                if not os.path.exists(new_path):
+                    if self.ffmpeg_path:
+                        if not os.path.exists(ffmpeg_folder_path):
+                            os.mkdir(ffmpeg_folder_path)
+                        subprocess.run([self.ffmpeg_path, "-i", real_path, new_path], stderr=subprocess.DEVNULL)
+                        self.append_log(f"Note: {x} was converted to a .ogg at {new_path}. Continue to refer to it as {x}")
+                        out[x] = new_path # The log entries should be descriptive enough
+                    else:
+                        self.append_log(f"Warning! FFmpeg was not found and {x} is not a .ogg. Either convert to .ogg or install FFmpeg. Texture will be discarded!")
+                else:
+                    self.append_log(f"Note: A cached .ogg was found for {x} at {new_path}. Continue to refer to it as {x}")
+            else:
+                out[x] = real_path
+        return out
+
+    def get_events(self):
+        # Simple alias for getting pygame events
+        for x in pygame.event.get():
+            if x.type == pygame.QUIT:
+                self.running = False
+            self.events.append(x)
+
+    def get_asset(self, path, audio=False, font=False, scale=False):
+        # path should be the texture name
+        # audio should be a boolean True or False as to whether the data is audio or not
+        # font should be a boolean True or False as to whether the data is a font or not
+        # Otherwise I'll assume you want an image
+        # False means that the data is an image and all other data should be gotten with get_raw_asset
+        # scale should be a float (usually between 0 and 1) or a tuple containing two integers
+        # If scale is a tuple then the two integers will be scaled by the same ratio as the increase in height so the texture
+        # maintains its original shape. By setting a float value for scaling developer's can ensure that a texture 
+        # will take up the same space on the screen regardless of resolution.
+
+        # If it's not in the file system map return a default to prevent errors
+        if path in self.__fs_map:
+            path = self.__fs_map[path]
+        else:
+            self.append_log(f"Error! Asset {path} was not found in file map! Changing files requires running self.map_fs() again!")
+            if audio:
+                return self.__assets["missing.ogg"]
+            elif font:
+                return self.__assets["ComicMono.ttf"]
+            else:
+                return self.__assets["missing.png"]
+
+        # If it's cached we don't need to do anything else
+        if path in self.__assets:
+            if audio or font:
+                return self.__assets[path]
+            elif scale and scale in self.__assets[path]:
+                # If we have the scaled version return it
+                return self.__assets[path][scale]
+            elif not scale:
+                return self.__assets[path]["raw"]
+            else:
+                # Otherwise scale it
+                self.__assets[path][scale] = self.__scale(self.__assets[path]["raw"], scale, path)
+                return self.__assets[path][scale]
+
+        # Fetch if not in cache
+        if audio:
+            try:
+                self.__assets[path] = pygame.mixer.Sound(path)
+                return self.__assets[path]
+            except:
+                self.append_log(f"Error! Asset {path} was not found in the mapped location! Changing files requires running self.map_fs() again!")
+                return self.__assets["missing.ogg"]
+        elif font:
+            try:
+                self.__assets[path] = pygame.font.Font(path)
+                return self.__assets[path]
+            except:
+                self.append_log(f"Error! Asset {path} was not found in the mapped location! Changing files requires running self.map_fs() again!")
+                return self.__assets["ComicMono.ttf"]
+        else:
+            try:
+                self.__assets[path] = {"raw": pygame.image.load(path)}
+                if not scale:
+                    return self.__assets[path]["raw"]
+                else:
+                    self.__assets[scale] = self.__scale(self.__assets[path]["raw"], scale, path)
+                    return self.__assets[scale]
+            except:
+                self.append_log(f"Error! Asset {path} was not found in the mapped location! Changing files requires running self.map_fs() again!")
+                return self.__assets["missing.png"]["raw"]
+
+
+    def __scale(self, obj, scale, path):
+        self.append_log(f"Scaling asset {path} with settings {scale}")
+        if isinstance(scale, tuple):
+            # Just in case someone decided to not follow my instructions, ensures tuple of size 2
+            if len(scale) == 1:
+                scale = scale[0]
+            else:
+                scale = scale[:2]
+        if isinstance(scale, float) or isinstance(scale, int):
+            x = self.height*scale
+            scale = (int((x/obj.get_height())*obj.get_width()), int(x))
+        # Now in both cases we have a tuple of length two with target pixel values
+        return pygame.transform.scale(obj, scale)
+
+    def load_entity(self, entity, scene, params=tuple()):
+        # Will add checks later this is rudimentary
+        id = self.id
+        e = entity(self, scene, id, *params)
+        self.__entities.append(e)
+        self.entity_id = {id: e}
+        return e
+
+    def load_scene(self, scene):
+        # Will add checks later this is rudimentary
+        self.scene = scene
+        self.update_rate, self.render_rate = scene.update_rate, scene.render_rate
+        self.update_counter, self.render_counter = 0, 0
+        scene.music().play(loops=-1)
+        self.scene_time = time.perf_counter()
+        self.started = True
+
+    def update_loop(self):
+        self.__threads[threading.get_ident()] = {"colour": Colour(0x6cd663), "name": "Update"}
+        self.append_log("Update thread started!")
+        while not self.started: # Wait for scene to be loaded
+            pass
+        while self.running:
+            self.update_counter += 1
+            event = len(self.events)
+            # Go through list of entities in order
+            for e in self.__entities:
+                e.update()
+            # All events are appended to self.events by the main thread
+            # But it's the update thread that actually needs them so this
+            # means the events will be processed in the update then removed
+            self.events = self.events[event:]
+            t = time.perf_counter()
+            # "How long do I have to wait to limit the rate of updates"
+            # Except a millisecond less actually because it's better to do an update early than late
+            s = (self.update_counter/self.update_rate)-(t-self.scene_time)-0.001
+            if s > 0:
+                time.sleep(s) # wait
+            # If it's negative then oh no we're behind
+            elif self.lag2+2 < t:  # Explained earlier, no console spam
+                x = int(self.update_rate*-s)
+                if x: # If we're less than 1 update behind why even bother
+                    self.append_log(f"Warning! Update was {round(-s*1000, 1)}ms behind! {x+1} updates behind!")
+                    self.lag2 = time.perf_counter()
+
+
+    def render_loop(self):
+        self.__threads[threading.get_ident()] = {"colour": Colour(0xf2e40d), "name": "Render"}
+        self.append_log("Render thread started!")
+        while not self.started: # Wait for scene to be loaded
+            pass
+        while self.running:
+            self.render_counter += 1
+            self.scene.background()
+            # Go through list of entities in order
+            for e in self.__entities:
+                e.render()
+            while not self.event_gotten:
+                time.sleep(0.001)
+            pygame.display.update()
+            self.event_gotten = False
+            t = time.perf_counter()
+            # "How long do I have to wait to limit the frame rate"
+            # Except a millisecond less actually because it's better to do a frame early than late
+            s = (self.render_counter/self.render_rate)-(t-self.scene_time)-0.001
+            if s > 0:
+                time.sleep(s)# wait
+            # If it's negative then oh no we're behind
+            elif self.lag+2 < t: # Explained earlier, no console spam
+                x = int(self.render_rate*-s)
+                if x: # If we're less than 1 frame behind why even bother
+                    self.append_log(f"Warning! Frame was {round(-s*1000, 1)}ms behind! {x+1} frames behind!")
+                    self.lag = time.perf_counter()
+
+    @property
+    def id(self):
+        self.__id += 1
+        return self.__id
+
+class Entity:
+    persist = False # The entity will be destroyed upon loading a new scene
+
+    def __init__(self, engine, scene, id):
+        # DO NOT override the __init__ function this ensures an entity functions correctly and will be verified
+        self.engine = engine
+        self.id = id
+        self.scene = scene
+    
+    def init(self):
+        self.engine.append_log("The default entity class has been initialised. Please check the log for errors.")
+        self.rotation = 0
+
+    def update(self): # spin
+        self.rotation += 0.25
+        self.rotation %= 360
+
+    def render(self):
+        t = self.engine.get_asset("missing.png", scale=0.2)
+        s = self.engine.screen
+        self.engine.screen.blit(pygame.transform.rotate(t, self.rotation), ((s.get_width()/2)-(t.get_width()/2), (s.get_height()/2)-(t.get_width()/2)))
+        # "stick it in the middle of the screen"
+
+class Scene:
+    loading_screen = False
+    loading_screen_entity = False
+    update_rate = 240 # Updates per second, must be positive integer, will verify at some point
+    render_rate = 60 # Frames per second, must be positive integer, will verify at some point
+    background = lambda self: self.engine.screen.fill(0) # Fill the screen with black
+    # Tem Shop from the Undertale soundtrack belongs to Toby Fox and Materia Collective
+    # I'm not selling it so I think he'll be chill with it right?
+    music = lambda self: self.engine.get_asset("tem_shop.ogg", audio=True)
+    
+    def __init__(self, engine):
+        # Override this function! Use it to load your textures and entities
+        self.engine = engine
+        self.engine.get_asset("missing.png", scale=0.2)
+        e = engine.load_entity(Entity, self)
+        e.init()
+
+# Implementation of ANSI escape codes for coloured text in console
+# Credit to Hope Shivlock
+# Add to the front of a string, pass in a hexcode
+class Colour:
+    default="\033[0m"
+    def __init__(self,hexcode):
+        if type(hexcode)==int:
+            # Convert hex codes to 3 integers
+            hexcode = ((hexcode%16777216)//65536,(hexcode%65536)//256,hexcode%256)
+        self._col=hexcode
+        # Generate ANSI
+        self._ansi="\033[38;2;"+";".join([str(num) for num in hexcode])+"m"
+    def __call__(self,text="",change=True): # Get code when class is called as a function
+        if change:
+            return self._ansi+text+self.default
+        else:
+            return self._ansi
+    def __add__(self,other): # Get code when class is added to string
+        return self._ansi+other
+    def __str__(self): # I added this bit it's useful for f-strings
+        return self._ansi
+    # Hope likes getters and setters she added this so you can change the colour
+    # But personally I just call a new instance of the very lightweight class
+    @property
+    def col(self):
+        return self._col
+    @col.setter
+    def col(self,hexcode):
+        if type(hexcode)==int:
+            hexcode = ((hexcode%16777216)//65536,(hexcode%65536)//256,hexcode%256)
+        self._col=hexcode
+        self._ansi="\033[38;2;"+";".join([str(num) for num in hexcode])+"m"
+    @property
+    def ansi(self):
+        return self._ansi
+
+# "If this script isn't being imported then start the engine"
+if __name__ == "__main__":
+    e = Engine()
+    # Purely here for testing right now
+    
+\end{minted}
 \end{document}
