@@ -1,8 +1,0 @@
-{
-    "width": 1280,
-    "height": 720,
-    "verify": false,
-    "resource_path": "resources",
-    "engine_path": "kris_engine",
-    "log_path": "kris_engine\\engine_log.txt"
-}
