@@ -66,6 +66,13 @@ class Grid(Entity):
             self.state = "VERIFY_ANIMATION"
             self.counter = 0
             self.counter_goal = 300
+            temp = copy(self.verify)
+            self.verify = []
+            for x in temp:
+                self.verify.append(self.values[x])
+                self.verify[-1].row = x // self.columns
+                self.verify[-1].column = x % self.columns
+                self.values[x] = None
         else:
             self.falling = FallingBean(*self.queue.get_next(), self)
             self.state = "FALL"
@@ -74,13 +81,11 @@ class Grid(Entity):
     def animate_verify(self):
         self.counter += 1
         if self.counter == self.counter_goal:
-            for pos in self.verify:
-                self.values[pos] = None
             self.verify = set()
             self.state = "GRAVITY"
         elif self.counter == 180:
             for x in self.verify:
-                self.values[x].state = TEXTURE_STATE_IDS["SHOCKED"]
+                x.state = TEXTURE_STATE_IDS["SHOCKED"]
         elif self.counter == 230:
             self.engine.get_asset(f"pop{self.chain_power if self.chain_power < 7 else 6}.ogg", audio=True).play()
 
@@ -139,27 +144,19 @@ class Grid(Entity):
     def render(self):
         self.render_grid()
         match self.state:
-            case "GRAVITY":
-                pass
             case "GRAVITY_ANIMATION":
                 self.render_gravity()
+            case "VERIFY_ANIMATION":
+                self.render_verify()
             case "FALL":
                 self.render_falling()
             case _:
                 pass
 
-    def place_bean(self, colour):
-        pass
-
     def render_grid(self):
         column = 0
         row = 0
-        to_render = copy(self.values)
-        if self.state == "VERIFY_ANIMATION":
-            if (25 < self.counter < 180 and self.counter%10 < 5) or 230 < self.counter:
-                for x in self.verify:
-                    to_render[x] = None
-        for x in to_render:
+        for x in self.values:
             if type(x) == Bean:
                 self.render_bean(x, row, column)
             column += 1
@@ -177,6 +174,13 @@ class Grid(Entity):
     def render_gravity(self):
         for x in self.gravity:
             self.render_bean(x, x.row, x.column)
+
+    def render_verify(self):
+        if self.counter > 230:
+            pass
+        if 25 < self.counter < 180 and self.counter%10 < 5:
+            for x in self.verify:
+                self.render_bean(x, x.row, x.column)
 
     def render_falling(self):
         self.render_bean(self.falling.primary, self.falling.row+1, self.falling.column)
