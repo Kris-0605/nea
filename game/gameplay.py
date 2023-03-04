@@ -1,5 +1,6 @@
 from kris_engine import Entity
 from random import randint
+from copy import copy
 
 # Constants
 
@@ -21,6 +22,7 @@ TEXTURE_STATE_IDS = {
 
 GAMEPLAY_STATES = (
     "FALL",
+    "GRAVITY",
     "GRAVITY_ANIMATION",
     "VERIFY",
     "VERIFY_ANIMATION",
@@ -30,55 +32,99 @@ GAMEPLAY_STATES = (
 class Grid(Entity):
     def init(self, rows=12, columns=6, values=[]):
         self.values = values
-        self.animated = []
+        self.gravity = []
         self.state = "VERIFY"
+        self.chain_power = 1
         self.rows, self.columns = rows, columns
         self.cache = (16/320, 16/224)
         self.eval_all_textures()
+        self.verify = self.count_all()
 
         self.queue = self.engine.load_entity(BeanQueue, self.scene)
         self.queue.init()
         self.falling = FallingBean(*self.queue.get_next(), self)
 
     def update(self):
-        print(self.state)
+        self.eval_all_textures()
         match self.state:
+            case "GRAVITY":
+                self.update_gravity()
             case "GRAVITY_ANIMATION":
                 self.animate_gravity()
             case "VERIFY":
-                self.eval_all_textures()
-                self.animated = self.count_all()
-                if self.animated:
-                    self.state = "VERIFY_ANIMATION"
-                    self.counter = 0
-                    self.counter_goal = 460
-                else:
-                    self.falling = FallingBean(*self.queue.get_next(), self)
-                    self.state = "FALL"
+                self.update_verify()
             case "VERIFY_ANIMATION":
-                self.counter += 1
-                if self.counter == self.counter_goal:
-                    new_animated = []
-                    for pos in self.animated:
-                        self.values[pos] = None
-                        for y in range(pos, len(self.values), self.columns):
-                            if self.values[y]:
-                                z = GravityBean(self.values[y].colour, y, self)
-                                self.values[y] = z
-                                new_animated.append(z)
-                    self.animated = new_animated
-                    self.state = "GRAVITY_ANIMATION"
-                elif self.counter == 360:
-                    for x in self.animated:
-                        self.values[x].state = TEXTURE_STATE_IDS["SHOCKED"]
+                self.update_verify_animation()
             case "FALL":
                 self.falling.update()
             case _:
                 pass
 
+    def update_verify(self):
+        if self.verify:
+            self.chain_power += 1
+            self.state = "VERIFY_ANIMATION"
+            self.counter = 0
+            self.counter_goal = 300
+        else:
+            self.falling = FallingBean(*self.queue.get_next(), self)
+            self.state = "FALL"
+            self.chain_power = 0
+
+    def update_verify_animation(self):
+        self.counter += 1
+        if self.counter == self.counter_goal:
+            for pos in self.verify:
+                self.values[pos] = None
+            self.verify = set()
+            self.state = "GRAVITY"
+        elif self.counter == 180:
+            for x in self.verify:
+                self.values[x].state = TEXTURE_STATE_IDS["SHOCKED"]
+        elif self.counter == 230:
+            self.engine.get_asset(f"pop{self.chain_power if self.chain_power < 7 else 6}.ogg", audio=True).play()
+
+    def update_gravity_quick(self):
+        for n in range(self.columns):
+            column = [self.values[x] for x in range(n, len(self.values), self.columns) if self.values[x] != None]
+            for x in range(n, len(self.values), self.columns):
+                if column:
+                    self.values[x] = column[0] if column else None
+                    column.pop(0)
+                else:
+                    self.values[x] = None
+
+    def update_gravity(self):
+        for n in range(self.columns):
+            column = [self.values[x] for x in range(n, len(self.values), self.columns)]
+            if None in column:
+                split_column = self.split_list(column, None)
+                for a in range(1, len(split_column)):
+                    for b in split_column[a]:
+                        row =  column.index(b)
+                        self.gravity.append(GravityBean(b, n+(row-a)*self.columns, a, row, n))
+                for x in range(n + len(split_column[0])*self.columns, len(self.values), self.columns):
+                    self.values[x] = None
+        self.counter = 0
+        self.counter_goal = 50
+        self.state = "GRAVITY_ANIMATION"
+
+    @staticmethod
+    def split_list(lst, sep):
+        out = []
+        x = 0
+        for n in range(len(lst)):
+            if lst[n] == sep:
+                out.append(lst[x:n])
+                x = n + 1
+        out.append(lst[x:])
+        return out
+
     def render(self):
         self.render_grid()
         match self.state:
+            case "GRAVITY":
+                pass
             case "GRAVITY_ANIMATION":
                 self.render_gravity()
             case "FALL":
@@ -92,8 +138,13 @@ class Grid(Entity):
     def render_grid(self):
         column = 0
         row = 0
-        for x in self.values:
-            if x and not (self.state == "VERIFY_ANIMATION" and 50 < self.counter < 360 and (self.counter%20 < 10) and x in self.animated):
+        to_render = copy(self.values)
+        if self.state == "VERIFY_ANIMATION":
+            if (25 < self.counter < 180 and self.counter%10 < 5) or 230 < self.counter:
+                for x in self.verify:
+                    to_render[x] = None
+        for x in to_render:
+            if type(x) == Bean:
                 self.render_bean(x, row, column)
             column += 1
             if column == self.columns:
@@ -108,14 +159,24 @@ class Grid(Entity):
         )
 
     def render_gravity(self):
-        for x in self.animated:
+        for x in self.gravity:
             self.render_bean(x, x.row, x.column)
 
     def animate_gravity(self):
-        for x in self.animated:
-            x.update()
-        if not self.animated:
-            self.state = "VERIFY"
+        for x in self.gravity:
+            try:
+                next(x.position)
+            except StopIteration:
+                self.gravity.remove(x)
+                col = x.colour
+                bean = Bean(col)
+                self.values[x.destination] = bean
+                self.eval_texture(x.destination)
+                self.count(x.destination)
+        if not self.gravity:
+            self.counter += 1
+            if self.counter == self.counter_goal:
+                self.state = "VERIFY"
 
     def render_falling(self):
         self.render_bean(self.falling.primary, self.falling.row+1, self.falling.column)
@@ -195,7 +256,7 @@ class Grid(Entity):
 
     def count_all(self):
         to_be_counted = [x for x in range(len(self.values)) if type(self.values[x]) == Bean]
-        to_be_destroyed = []
+        to_be_destroyed = set()
         while to_be_counted:
             group = {to_be_counted[0]}
             surroundings = self.get_surroundings(to_be_counted[0], group)
@@ -205,14 +266,23 @@ class Grid(Entity):
             for x in group:
                 to_be_counted.remove(x)
             if len(group) >= 4:
-                to_be_destroyed += list(group)
+                to_be_destroyed = to_be_destroyed.union(group)
         return to_be_destroyed
+    
+    def count(self, bean):
+        group = {bean}
+        surroundings = self.get_surroundings(bean, group)
+        for x in surroundings:
+            group.add(x)
+            surroundings += self.get_surroundings(x, group)
+        if len(group) >= 4:
+            self.verify = self.verify.union(group)
 
     def get_surroundings(self, x, group):
         tests = []
         if x+self.columns < len(self.values):
             tests.append(x+self.columns)
-        if x-self.columns > 0:
+        if x-self.columns >= 0:
             tests.append(x-self.columns)
         if x % self.columns:
             tests.append(x-1)
@@ -252,26 +322,32 @@ class Bean:
     # 0 means there is no bean there
     # False means there is a bean there, but it's not the same colour
     # True means there is a bean there, and it's the same colour
-    def __init__(self, colour, up=0, down=0, left=0, right=0, state=0, neighbours=0):
+    def __init__(self, colour, up=0, down=0, left=0, right=0, state=0):
         self.colour = colour if type(colour) == int else COLOUR_IDS[colour]
         self.__up = up
         self.__down = down
         self.__left = left
         self.__right = right
-        self.__state = state if state else TEXTURE_STATE_IDS["NORMAL"]
+        self.__state = state
         self.get_texture()
+
+    def __str__(self):
+        return f"Bean({self.colour})"
+    __repr__ = __str__
 
     def get_texture(self):
         if self.state:
             texture = self.state
         else:
             texture = (self.up << 3) + (self.down << 2) + (self.left << 1) + self.right
+        if texture == 0:
+            texture = TEXTURE_STATE_IDS["NORMAL"]
         self.texture = f"{self.colour}_{texture}.png"
         return self.texture
 
     @property
     def state(self):
-        if not (self.up or self.down or self.left or self.right) and not self.__state:
+        if not self.__state and not (self.up or self.down or self.left or self.right):
             return TEXTURE_STATE_IDS["NORMAL"]
         return self.__state
 
@@ -321,35 +397,55 @@ class Bean:
         self.get_texture()
 
 class GravityBean(Bean):
-    def __init__(self, colour, pos, grid: Grid):
-        Bean.__init__(self, colour)
-        self.state = TEXTURE_STATE_IDS["SQUISH1"]
-
-        self.grid = grid
+    def __init__(self, bean, destination, row_distance, row, column):
+        Bean.__init__(self, bean.colour)
         
-        self.column = pos % self.grid.columns
-        self.row = pos // self.grid.columns
+        self.row = row
+        self.column = column
+        self.destination = destination
+        self.row_distance = row_distance
 
-        dest = pos
-        n = 0
-        while grid.values[dest] != None:
-            dest -= grid.columns
-            n += 1
-            if dest < 0:
-                dest = pos
-                n = 0
-                break
-        self.destination = dest
-        self.counter = n * 110
-        self.increment = 1/110
+        def position():
+            #for n in range(40):
+            #    yield
+            self.state = TEXTURE_STATE_IDS["NORMAL"]
+            for n in range(row_distance*10):
+                if n % 5 == 0:
+                    self.row -= 0.5
+                yield
+            for i in range(2):
+                self.state = TEXTURE_STATE_IDS["NORMAL"]
+                for n in range(5):
+                    yield
+                self.state = TEXTURE_STATE_IDS["SQUISH2"]
+                for n in range(15):
+                    yield
+                self.state = TEXTURE_STATE_IDS["NORMAL"]
+                for n in range(5):
+                    yield
+                self.state = TEXTURE_STATE_IDS["SQUISH1"]
+                for n in range(10):
+                    yield
+            self.state = TEXTURE_STATE_IDS["NORMAL"]
+            for n in range(5):
+                yield
+            self.state = TEXTURE_STATE_IDS["SQUISH2"]
+            for n in range(10):
+                yield
+            self.state = TEXTURE_STATE_IDS["NORMAL"]
+            for n in range(5):
+                yield
+            self.state = TEXTURE_STATE_IDS["SQUISH1"]
+            for n in range(5):
+                yield
+            self.state = TEXTURE_STATE_IDS["NORMAL"]
+            for n in range(5):
+                yield
+            self.state = TEXTURE_STATE_IDS["SQUISH2"]
+            for n in range(30):
+                yield
 
-    def update(self):
-        if self.counter == 0:
-            self.grid.animated.remove(self)
-            self.grid.values[self.destination] = Bean(self.colour)
-            self.grid.eval_surrounding(self.destination)
-        self.counter -= 1
-        self.row -= self.increment
+        self.position = position()
 
 class FallingBean(Bean):
     def __init__(self, primary, secondary, grid: Grid):
@@ -365,18 +461,20 @@ class FallingBean(Bean):
         self.counter += 1
         if self.counter % 120 == 0:
             try:
+                print(self.row)
                 if self.row % 1 == 0.5:
                     self.row -= 0.5
-                elif self.row == 0:
-                    self.grid.values[self.column] = self.primary
-                    self.grid.values[self.grid.rows + self.column] = self.secondary
-                    self.grid.state = "GRAVITY_ANIMATION"
-                elif self.grid.values[int((self.row-1)*self.grid.columns + self.column)]:
-                    self.grid.values[int(self.row*self.grid.columns + self.column)] = self.primary
-                    self.grid.values[int((self.row+1)*self.grid.columns + self.column)] = self.secondary
-                    self.grid.state = "GRAVITY_ANIMATION"
+                elif self.row == 1:
+                    self.place_beans(self.row, self.column)
+                elif not self.grid.values[int((self.row-1)*self.grid.columns + self.column)]:
+                    self.place_beans(self.row, self.column)
                 else:
                     self.row -= 0.5
-            except Exception as e:
-                print(e)
+            except:
                 self.row -= 0.5
+    
+    def place_beans(self, row, column):
+        position = row * self.grid.columns + column
+        self.grid.values[position] = self.primary
+        self.grid.values[position + self.grid.columns] = self.secondary
+        self.grid.state = "GRAVITY_ANIMATION"
