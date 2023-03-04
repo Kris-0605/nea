@@ -65,7 +65,7 @@ class Grid(Entity):
             self.chain_power += 1
             self.state = "VERIFY_ANIMATION"
             self.counter = 0
-            self.counter_goal = 231#300
+            self.counter_goal = 300
             temp = copy(self.verify)
             self.verify = []
             for x in temp:
@@ -127,7 +127,7 @@ class Grid(Entity):
                 for x in range(n + len(split_column[0])*self.columns, len(self.values), self.columns):
                     self.values[x] = None
         self.counter = 0
-        self.counter_goal = 1#50
+        self.counter_goal = 50
         self.state = "GRAVITY_ANIMATION"
 
     @staticmethod
@@ -299,17 +299,17 @@ class BeanQueue(Entity):
         self.next = (Bean(randint(1,5)), Bean(randint(1, 5)))
         self.cache = (16/224, 40/224, 56/224)
 
-    #def render(self):
-    #    self.engine.screen.blit(
-    #        self.engine.get_asset(self.next[0].texture, scale=self.cache[0]),
-    #        (0.4*self.engine.width,
-    #        self.cache[1]*self.engine.height)
-    #    )
-    #    self.engine.screen.blit(
-    #        self.engine.get_asset(self.next[1].texture, scale=self.cache[0]),
-    #        (0.4*self.engine.width,
-    #        self.cache[2]*self.engine.height)
-    #    )
+    def render(self):
+        self.engine.screen.blit(
+            self.engine.get_asset(self.next[0].texture, scale=self.cache[0]),
+            (0.4*self.engine.width,
+            self.cache[1]*self.engine.height)
+        )
+        self.engine.screen.blit(
+            self.engine.get_asset(self.next[1].texture, scale=self.cache[0]),
+            (0.4*self.engine.width,
+            self.cache[2]*self.engine.height)
+        )
     
     def update(self):
         # Will be animated later
