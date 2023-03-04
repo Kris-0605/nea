@@ -54,7 +54,7 @@ class Grid(Entity):
             case "VERIFY":
                 self.update_verify()
             case "VERIFY_ANIMATION":
-                self.update_verify_animation()
+                self.animate_verify()
             case "FALL":
                 self.falling.update()
             case _:
@@ -71,7 +71,7 @@ class Grid(Entity):
             self.state = "FALL"
             self.chain_power = 0
 
-    def update_verify_animation(self):
+    def animate_verify(self):
         self.counter += 1
         if self.counter == self.counter_goal:
             for pos in self.verify:
@@ -83,6 +83,22 @@ class Grid(Entity):
                 self.values[x].state = TEXTURE_STATE_IDS["SHOCKED"]
         elif self.counter == 230:
             self.engine.get_asset(f"pop{self.chain_power if self.chain_power < 7 else 6}.ogg", audio=True).play()
+
+    def animate_gravity(self):
+        for x in self.gravity:
+            try:
+                next(x.position)
+            except StopIteration:
+                self.gravity.remove(x)
+                col = x.colour
+                bean = Bean(col)
+                self.values[x.destination] = bean
+                self.eval_texture(x.destination)
+                self.count(x.destination)
+        if not self.gravity:
+            self.counter += 1
+            if self.counter == self.counter_goal:
+                self.state = "VERIFY"
 
     def update_gravity_quick(self):
         for n in range(self.columns):
@@ -161,22 +177,6 @@ class Grid(Entity):
     def render_gravity(self):
         for x in self.gravity:
             self.render_bean(x, x.row, x.column)
-
-    def animate_gravity(self):
-        for x in self.gravity:
-            try:
-                next(x.position)
-            except StopIteration:
-                self.gravity.remove(x)
-                col = x.colour
-                bean = Bean(col)
-                self.values[x.destination] = bean
-                self.eval_texture(x.destination)
-                self.count(x.destination)
-        if not self.gravity:
-            self.counter += 1
-            if self.counter == self.counter_goal:
-                self.state = "VERIFY"
 
     def render_falling(self):
         self.render_bean(self.falling.primary, self.falling.row+1, self.falling.column)
