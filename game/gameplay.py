@@ -141,6 +141,10 @@ class Grid(Entity):
                 x = n + 1
         out.append(lst[x:])
         return out
+    
+    def place_bean(self, bean, position):
+        if position >= len(self.values):
+            self.values += [None]*(position-len(self.values))
 
     def render(self):
         self.render_grid()
@@ -275,13 +279,14 @@ class Grid(Entity):
         return to_be_destroyed
     
     def count(self, bean):
-        group = {bean}
-        surroundings = self.get_surroundings(bean, group)
-        for x in surroundings:
-            group.add(x)
-            surroundings += self.get_surroundings(x, group)
-        if len(group) >= 4:
-            self.verify = self.verify.union(group)
+        if bean not in self.verify:
+            group = {bean}
+            surroundings = self.get_surroundings(bean, group)
+            for x in surroundings:
+                group.add(x)
+                surroundings += self.get_surroundings(x, group)
+            if len(group) >= 4:
+                self.verify = self.verify.union(group)
 
     def get_surroundings(self, x, group):
         tests = []
