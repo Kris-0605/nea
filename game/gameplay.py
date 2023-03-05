@@ -30,18 +30,19 @@ GAMEPLAY_STATES = (
 )
 
 class Grid(Entity):
-    def init(self, rows=12, columns=6, values=[]):
+    def init(self, rows=12, columns=6, values=[], position=(16/320, 16/224), bean_queue_position=(0.4, 40/224)):
         self.values = values
         self.gravity = []
         self.state = "VERIFY"
         self.chain_power = 1
         self.rows, self.columns = rows, columns
         self.cache = (16/320, 16/224)
+        self.position = position
         self.eval_all_textures()
         self.verify = self.count_all()
 
         self.queue = self.engine.load_entity(BeanQueue, self.scene)
-        self.queue.init()
+        self.queue.init(bean_queue_position)
         self.falling = FallingBean(*self.queue.get_next(), self)
 
     def update(self):
@@ -167,8 +168,8 @@ class Grid(Entity):
     def render_bean(self, x, row, column):
         self.engine.screen.blit(
             self.engine.get_asset(x.texture, scale=self.cache[1]),
-            (self.cache[0]*(column+1)*self.engine.width,
-            (1-(self.cache[1]*(row+2)))*self.engine.height)
+            ((self.cache[0]*column+self.position[0])*self.engine.width,
+            (1-(self.cache[1]*row+self.position[1]*2))*self.engine.height)
         )
 
     def render_gravity(self):
@@ -295,20 +296,21 @@ class Grid(Entity):
         return [y for y in tests if y >= 0 and y < len(self.values) and self.values[y] and self.values[y].colour == self.values[x].colour and y not in group]
 
 class BeanQueue(Entity):
-    def init(self):
+    def init(self, position):
         self.next = (Bean(randint(1,5)), Bean(randint(1, 5)))
-        self.cache = (16/224, 40/224, 56/224)
+        self.cache = 16/224
+        self.position = position
 
     def render(self):
         self.engine.screen.blit(
-            self.engine.get_asset(self.next[0].texture, scale=self.cache[0]),
-            (0.4*self.engine.width,
-            self.cache[1]*self.engine.height)
+            self.engine.get_asset(self.next[0].texture, scale=self.cache),
+            (self.position[0]*self.engine.width,
+            self.position[1]*self.engine.height)
         )
         self.engine.screen.blit(
-            self.engine.get_asset(self.next[1].texture, scale=self.cache[0]),
-            (0.4*self.engine.width,
-            self.cache[2]*self.engine.height)
+            self.engine.get_asset(self.next[1].texture, scale=self.cache),
+            (self.position[0]*self.engine.width,
+            (self.cache+self.position[1])*self.engine.height)
         )
     
     def update(self):
