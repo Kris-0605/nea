@@ -157,6 +157,7 @@ class Grid(Entity):
                 self.render_falling()
             case _:
                 pass
+        self.engine.screen.blit(self.engine.get_asset("backdrop3.png", scale=(self.engine.width, self.engine.height)), (0, 0))
 
     def render_grid(self):
         column = 0
@@ -464,7 +465,7 @@ class FallingBean(Bean):
         self.secondary = Bean(secondary.colour)
         self.grid = grid
 
-        self.row = grid.rows
+        self.row = grid.rows-1
         self.column = 2
         self.counter = 0
 
