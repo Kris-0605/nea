@@ -1,5 +1,5 @@
 from kris_engine import Scene
-from gameplay import Grid, Bean
+from gameplay import Grid, Bean, InputHandler
 from random import randint
 
 class ExerciseClassic(Scene):
@@ -11,10 +11,9 @@ class ExerciseClassic(Scene):
 
     def __init__(self, engine):
         self.engine = engine
-        #e = self.engine.load_entity(Grid, self)
-        e2 = self.engine.load_entity(Grid, self)
-        e2.init(values=[Bean(randint(1,5)) for x in range(60)])#, position=(208/320, 16/224), bean_queue_position=(176/320, 40/224))
-        #e.init(values=[
+        input_handler = self.engine.load_entity(InputHandler, self)
+        e2 = self.engine.load_entity(Grid, self, values=[Bean(randint(1,5)) for x in range(60)])
+        #e = self.engine.load_entity(Grid, self, values=[
         #    Bean(1), Bean(5), Bean(5), Bean(5), Bean(1), Bean(2),
         #    Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),
         #    Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),

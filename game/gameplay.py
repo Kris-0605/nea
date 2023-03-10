@@ -1,6 +1,7 @@
 from kris_engine import Entity
 from random import randint
 from copy import copy
+import pygame
 
 # Constants
 
@@ -29,8 +30,22 @@ GAMEPLAY_STATES = (
     "DIE"
 )
 
+ACTION_IDS = {
+    "NOTHING": 0,
+    "START": 1,
+    "MOVE_LEFT": 2,
+    "MOVE_RIGHT": 3,
+    "DOWN": 6,
+}
+
+HANDLING_SETTINGS = {
+    "DAS": 45,
+    "ARR": 15
+}
+
 class Grid(Entity):
-    def init(self, rows=12, columns=6, values=[], position=(16/320, 16/224), bean_queue_position=(0.4, 40/224)):
+    def __init__(self, engine, scene, id, rows=12, columns=6, values=[], position=(16/320, 16/224), bean_queue_position=(0.4, 40/224)):
+        super().__init__(engine, scene, id)
         self.values = values
         self.gravity = []
         self.state = "GRAVITY"
@@ -41,8 +56,7 @@ class Grid(Entity):
         self.eval_all_textures()
         self.verify = self.count_all()
 
-        self.queue = self.engine.load_entity(BeanQueue, self.scene)
-        self.queue.init(bean_queue_position)
+        self.queue = self.engine.load_entity(BeanQueue, self.scene, bean_queue_position)
         self.falling = FallingBean(*self.queue.get_next(), self)
 
     def __str__(self):
@@ -314,7 +328,8 @@ class Grid(Entity):
         return [y for y in tests if y >= 0 and y < len(self.values) and self.values[y] and self.values[y].colour == self.values[x].colour and y not in group]
 
 class BeanQueue(Entity):
-    def init(self, position):
+    def __init__(self, engine, scene, id, position):
+        super().__init__(engine, scene, id)
         self.next = (Bean(randint(1,5)), Bean(randint(1, 5)))
         self.cache = 16/224
         self.position = position
@@ -422,8 +437,8 @@ class Bean:
 
 class GravityBean(Bean):
     def __init__(self, bean, destination, row_distance, row, column):
-        Bean.__init__(self, bean.colour)
-        
+        super().__init__(bean.colour)
+
         self.row = row
         self.column = column
         self.destination = destination
@@ -501,3 +516,84 @@ class FallingBean(Bean):
         self.grid.place_bean(self.secondary, int(self.column+self.grid.columns*(self.row+1)))
         self.grid.place_bean(self.primary, int(self.column+self.grid.columns*self.row))
         self.grid.state = "GRAVITY"
+        
+class InputHandler(Entity):
+    def __init__(self, engine, scene, id):
+        super().__init__(engine, scene, id)
+        self.state = ACTION_IDS["NOTHING"]
+        self.direction = 0
+        self.rotation = 0
+
+    def render(self):
+        pass
+
+    def get_inputs(self):
+        self.left = False
+        self.right = False
+        self.down = False
+        self.A = False
+        self.B = False
+        self.start = False
+
+        if [x for x in self.engine.events if x.type == pygame.KEYDOWN and x.key == pygame.K_RETURN]:
+            self.start = True
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.left = True
+        if keys[pygame.K_RIGHT]:
+            self.right = True
+        if keys[pygame.K_DOWN]:
+            self.down = True
+        if keys[pygame.K_c]:
+            self.A = True
+        if keys[pygame.K_x]:
+            self.B = True
+
+    def update(self):
+        self.get_inputs()
+
+        if self.A and self.B:
+            self.rotation = 0
+        elif self.A:
+            self.rotation = 1
+        elif self.B:
+            self.rotation = -1
+        else:
+            self.rotation = 0
+        
+        if self.left and self.right:
+            self.direction = 0
+        elif self.left:
+            self.direction -= 1
+        elif self.right:
+            self.direction += 1
+        else:
+            self.direction = 0
+
+        if self.start:
+            self.state = ACTION_IDS["START"]
+        else:
+            if not self.direction:
+                if self.down:
+                    self.state = ACTION_IDS["DOWN"]
+                else:
+                    self.state = ACTION_IDS["NOTHING"]
+            elif self.direction == 1:
+                self.state = ACTION_IDS["MOVE_RIGHT"]
+            elif self.direction == -1:
+                self.state = ACTION_IDS["MOVE_LEFT"]
+            elif self.direction == HANDLING_SETTINGS["DAS"]:
+                self.state = ACTION_IDS["MOVE_RIGHT"]
+            elif self.direction == -HANDLING_SETTINGS["DAS"]:
+                self.state = ACTION_IDS["MOVE_RIGHT"]
+            elif self.direction > HANDLING_SETTINGS["DAS"]:
+                if self.direction-HANDLING_SETTINGS["DAS"] % HANDLING_SETTINGS["ARR"] == 0:
+                    self.state = ACTION_IDS["MOVE_RIGHT"]
+                else:
+                    self.state = ACTION_IDS["NOTHING"]
+            elif self.direction < -HANDLING_SETTINGS["DAS"]:
+                if self.direction+HANDLING_SETTINGS["DAS"] % HANDLING_SETTINGS["ARR"] == 0:
+                    self.state = ACTION_IDS["MOVE_LEFT"]
+                else:
+                    self.state = ACTION_IDS["NOTHING"]
