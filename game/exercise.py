@@ -11,20 +11,20 @@ class ExerciseClassic(Scene):
 
     def __init__(self, engine):
         self.engine = engine
-        e = self.engine.load_entity(Grid, self)
-        #e2 = self.engine.load_entity(Grid, self)
-        #e2.init(values=[Bean(randint(1,5)) for x in range(60)], position=(208/320, 16/224), bean_queue_position=(176/320, 40/224))
-        e.init(values=[
-            Bean(1), Bean(5), Bean(5), Bean(5), Bean(1), Bean(2),
-            Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),
-            Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),
-            Bean(1), Bean(3), Bean(4), Bean(5), Bean(2), None,
-            Bean(2), Bean(3), Bean(4), Bean(1), None, None,
-            Bean(2), None, None, None, None, None,
-            None, None, None, None, None, None,
-            None, None, None, None, None, None,
-            None, None, None, None, None, None,
-            None, None, None, None, None, None,
-            None, None, None, None, None, None,
-            None, None, None, None, None, None,
-        ])
+        #e = self.engine.load_entity(Grid, self)
+        e2 = self.engine.load_entity(Grid, self)
+        e2.init(values=[Bean(randint(1,5)) for x in range(60)])#, position=(208/320, 16/224), bean_queue_position=(176/320, 40/224))
+        #e.init(values=[
+        #    Bean(1), Bean(5), Bean(5), Bean(5), Bean(1), Bean(2),
+        #    Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),
+        #    Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),
+        #    Bean(1), Bean(3), Bean(4), Bean(5), Bean(2), None,
+        #    Bean(2), Bean(3), Bean(4), Bean(1), None, None,
+        #    Bean(2), None, None, None, None, None,
+        #    None, None, None, None, None, None,
+        #    None, None, None, None, None, None,
+        #    None, None, None, None, None, None,
+        #    None, None, None, None, None, None,
+        #    None, None, None, None, None, None,
+        #    None, None, None, None, None, None,
+        #])
