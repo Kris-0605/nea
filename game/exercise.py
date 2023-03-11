@@ -12,7 +12,7 @@ class ExerciseClassic(Scene):
     def __init__(self, engine):
         self.engine = engine
         input_handler = self.engine.load_entity(InputHandler, self)
-        e2 = self.engine.load_entity(Grid, self, values=[Bean(randint(1,5)) for x in range(60)])
+        e2 = self.engine.load_entity(Grid, self, input_handler)#, values=[Bean(randint(1,5)) for x in range(60)])
         #e = self.engine.load_entity(Grid, self, values=[
         #    Bean(1), Bean(5), Bean(5), Bean(5), Bean(1), Bean(2),
         #    Bean(1), Bean(2), Bean(3), Bean(4), Bean(1), Bean(2),

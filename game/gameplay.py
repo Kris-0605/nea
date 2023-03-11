@@ -44,8 +44,9 @@ HANDLING_SETTINGS = {
 }
 
 class Grid(Entity):
-    def __init__(self, engine, scene, id, rows=12, columns=6, values=[], position=(16/320, 16/224), bean_queue_position=(0.4, 40/224)):
+    def __init__(self, engine, scene, id, input_handler, rows=12, columns=6, values=[], position=(16/320, 16/224), bean_queue_position=(0.4, 40/224)):
         super().__init__(engine, scene, id)
+        self.input_handler = input_handler
         self.values = values
         self.gravity = []
         self.state = "GRAVITY"
@@ -495,11 +496,19 @@ class FallingBean(Bean):
         self.row = grid.rows
         self.column = 2
         self.counter = 0
+        self.fall_rate = 120
 
     def update(self):
         self.counter += 1
-        if self.counter % 120 == 0:
-            try:
+        position = self.column+self.grid.columns*int(self.row)
+        try:
+            if self.grid.input_handler.state == ACTION_IDS["MOVE_LEFT"] and self.column != 0:
+                if ((x := self.row % 1) == 0 and not self.grid.values[position-1]) or (x == 0.5 and not self.grid.values[position-1] and not self.grid.values[self.column+self.grid.columns*int(self.row+1)-1]): 
+                    self.column -= 1
+            elif self.grid.input_handler.state == ACTION_IDS["MOVE_RIGHT"] and self.column != self.grid.columns-1:
+                if ((x := self.row % 1) == 0 and not self.grid.values[position+1]) or (x == 0.5 and not self.grid.values[position+1] and not self.grid.values[self.column+self.grid.columns*int(self.row+1)+1]):
+                    self.column += 1
+            if self.counter % self.fall_rate == 0:
                 if self.row % 1 == 0.5:
                     self.row -= 0.5
                 elif self.row == 0:
@@ -508,9 +517,9 @@ class FallingBean(Bean):
                     self.place_beans()
                 else:
                     self.row -= 0.5
-            except IndexError:
-                self.grid.values += [None]*(int(self.column+self.grid.columns*(self.row+1))-len(self.grid.values))
-                self.row -= 0.5
+        except IndexError:
+            self.grid.values += [None]*(int(self.column+self.grid.columns*(self.row+1))-len(self.grid.values))
+            self.row -= 0.5
 
     def place_beans(self):
         self.grid.place_bean(self.secondary, int(self.column+self.grid.columns*(self.row+1)))
@@ -565,9 +574,15 @@ class InputHandler(Entity):
         if self.left and self.right:
             self.direction = 0
         elif self.left:
-            self.direction -= 1
+            if self.direction > 0:
+                self.direction = -1
+            else:
+                self.direction -= 1
         elif self.right:
-            self.direction += 1
+            if self.direction < 0:
+                self.direction = 1
+            else:
+                self.direction += 1
         else:
             self.direction = 0
 
@@ -586,14 +601,16 @@ class InputHandler(Entity):
             elif self.direction == HANDLING_SETTINGS["DAS"]:
                 self.state = ACTION_IDS["MOVE_RIGHT"]
             elif self.direction == -HANDLING_SETTINGS["DAS"]:
-                self.state = ACTION_IDS["MOVE_RIGHT"]
+                self.state = ACTION_IDS["MOVE_LEFT"]
             elif self.direction > HANDLING_SETTINGS["DAS"]:
-                if self.direction-HANDLING_SETTINGS["DAS"] % HANDLING_SETTINGS["ARR"] == 0:
+                if (self.direction-HANDLING_SETTINGS["DAS"]) % HANDLING_SETTINGS["ARR"] == 0:
                     self.state = ACTION_IDS["MOVE_RIGHT"]
                 else:
                     self.state = ACTION_IDS["NOTHING"]
             elif self.direction < -HANDLING_SETTINGS["DAS"]:
-                if self.direction+HANDLING_SETTINGS["DAS"] % HANDLING_SETTINGS["ARR"] == 0:
+                if (self.direction+HANDLING_SETTINGS["DAS"]) % HANDLING_SETTINGS["ARR"] == 0:
                     self.state = ACTION_IDS["MOVE_LEFT"]
                 else:
                     self.state = ACTION_IDS["NOTHING"]
+            else:
+                self.state = ACTION_IDS["NOTHING"]
