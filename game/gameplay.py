@@ -500,6 +500,12 @@ class FallingBean(Bean):
 
     def update(self):
         self.counter += 1
+
+        if self.counter % 200 == 90:
+            self.primary.state = TEXTURE_STATE_IDS["WHITE"]
+        elif self.counter % 200 == 0:
+            self.primary.state = TEXTURE_STATE_IDS["NORMAL"]
+
         position = self.column+self.grid.columns*int(self.row)
         try:
             if self.grid.input_handler.state == ACTION_IDS["MOVE_LEFT"] and self.column != 0:
@@ -522,6 +528,7 @@ class FallingBean(Bean):
             self.row -= 0.5
 
     def place_beans(self):
+        self.primary.state, self.secondary.state = 0, 0
         self.grid.place_bean(self.secondary, int(self.column+self.grid.columns*(self.row+1)))
         self.grid.place_bean(self.primary, int(self.column+self.grid.columns*self.row))
         self.grid.state = "GRAVITY"
