@@ -47,14 +47,19 @@ class Grid(Entity):
     def __init__(self, engine, scene, id, input_handler, rows=12, columns=6, values=[], position=(16/320, 16/224), bean_queue_position=(0.4, 40/224)):
         super().__init__(engine, scene, id)
         self.input_handler = input_handler
+        self.score = self.engine.load_entity(Score, scene)
         self.values = values
         self.gravity = []
         self.state = "GRAVITY"
-        self.chain_power = 1
+        self.chain_power = 0
+        self.colour_bonus = 0
+        self.group_bonus = 0
+        self.beans_popped = 0
         self.rows, self.columns = rows, columns
         self.cache = (16/320, 16/224)
         self.position = position
         self.eval_all_textures()
+        self.groups = []
         self.verify = self.count_all()
 
         self.queue = self.engine.load_entity(BeanQueue, self.scene, bean_queue_position)
@@ -85,11 +90,20 @@ class Grid(Entity):
     def update_verify(self):
         if self.verify:
             self.chain_power += 1
+            colours = set()
+            if (z:= sum(len(x) for x in self.groups)) > self.beans_popped:
+                self.beans_popped = z
+            for x in self.groups:
+                self.group_bonus += self.group_bonus_lookup(len(x))
+                colours.add(x.pop())
+            self.colour_bonus += self.colour_bonus_lookup(len(colours))
+            self.score.text = (f"{10*self.beans_popped}x{z}" if (z := self.chain_power_lookup(self.chain_power)+self.group_bonus+self.colour_bonus) else str(10*self.beans_popped)).rjust(9)
             self.state = "VERIFY_ANIMATION"
             self.counter = 0
             self.counter_goal = 300
             temp = copy(self.verify)
             self.verify = set()
+            self.groups = []
             for x in temp:
                 self.values[x].row = x // self.columns
                 self.values[x].column = x % self.columns
@@ -103,7 +117,34 @@ class Grid(Entity):
             if self.state != "DIE":
                 self.falling = FallingBean(*self.queue.get_next(), self)
                 self.state = "FALL"
+                self.score.score += 10*self.beans_popped*(z if (z := self.chain_power_lookup(self.chain_power)+self.group_bonus+self.colour_bonus) else 1)
+                self.score.text = str(self.score.score).zfill(9)
                 self.chain_power = 0
+                self.colour_bonus = 0
+                self.group_bonus = 0
+                self.beans_popped = 0
+
+    @staticmethod
+    def chain_power_lookup(CP):
+        if CP == 1:
+            return 0
+        if CP > 8:
+            return 999
+        return 2**(CP+1)
+    
+    @staticmethod
+    def colour_bonus_lookup(CB):
+        if CB == 1:
+            return 0
+        return 2**(CB-2)*3
+    
+    @staticmethod
+    def group_bonus_lookup(GB):
+        if GB < 5:
+            return 0
+        if GB > 10:
+            return 10
+        return GB-3
 
     def animate_verify(self):
         self.counter += 1
@@ -314,6 +355,7 @@ class Grid(Entity):
                 to_be_counted.remove(x)
             if len(group) >= 4:
                 to_be_destroyed = to_be_destroyed.union(group)
+                self.groups.append(group)
         return to_be_destroyed
     
     def count(self, bean):
@@ -325,6 +367,7 @@ class Grid(Entity):
                 surroundings += self.get_surroundings(x, group)
             if len(group) >= 4:
                 self.verify = self.verify.union(group)
+                self.groups.append(group)
 
     def get_surroundings(self, x, group):
         tests = []
@@ -542,6 +585,9 @@ class FallingBean(Bean):
                     self.place_beans()
                 else:
                     self.row -= 0.5
+                    if self.grid.input_handler.state == ACTION_IDS["DOWN"]:
+                        self.grid.score.score += 1
+                        self.grid.score.text = str(self.grid.score.score).zfill(9)
         except IndexError:
             self.grid.values += [None]*(int(self.column+self.grid.columns*(self.row+1))-len(self.grid.values))
             if self.counter % self.fall_rate == 0:
@@ -686,3 +732,17 @@ class InputHandler(Entity):
                     self.state = ACTION_IDS["NOTHING"]
             else:
                 self.state = ACTION_IDS["NOTHING"]
+
+class Score(Entity):
+    def __init__(self, engine, scene, id):
+        super().__init__(engine, scene, id)
+        self.font = self.engine.get_asset("ComicMono.ttf", font=40)
+        self.score = 0
+        self.text = "000000000"
+
+    def update(self):
+        pass
+    
+    def render(self):
+        text = self.font.render(self.text, True, 0xffffffff)
+        self.engine.screen.blit(text, (0.4*self.engine.width, 0.5*self.engine.height))
