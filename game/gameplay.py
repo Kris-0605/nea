@@ -113,6 +113,8 @@ class Grid(Entity):
             try:
                 if self.values[(self.rows-1)*self.columns + 2]:
                     self.state = "DIE"
+                    self.score.dump_score()
+                    self.score.output_top_scores()
             except: pass
             if self.state != "DIE":
                 self.falling = FallingBean(*self.queue.get_next(), self)
@@ -746,3 +748,34 @@ class Score(Entity):
     def render(self):
         text = self.font.render(self.text, True, 0xffffffff)
         self.engine.screen.blit(text, (0.4*self.engine.width, 0.5*self.engine.height))
+
+    def output_top_scores(self):
+        with open("scores.txt", "r") as f:
+            scores = [int(x) for x in f.read().split("\n") if x]
+        sorted_scores = self.merge_sort(scores)
+        MAX_SCORES_OUTPUT = 5
+        print("Top scores:")
+        iter_length = len(sorted_scores) if len(sorted_scores) < MAX_SCORES_OUTPUT else MAX_SCORES_OUTPUT
+        for x in range(1, iter_length+1):
+            print(f"{x}. {sorted_scores[-x]}")
+
+    def dump_score(self):
+        try:
+            with open("scores.txt", "a") as f:
+                f.write("\n")
+                f.write(str(self.score))
+        except:
+            with open("scores.txt", "w") as f:
+                f.write(str(self.score))
+
+    def merge_sort(self, lst):
+        length = len(lst)
+        if length == 1:
+            return lst
+        length //= 2
+        left = self.merge_sort(lst[:length])
+        right = self.merge_sort(lst[length:])
+        out = []
+        while left and right:
+            out.append((left if left[0]<right[0] else right).pop(0))
+        return out + left + right
