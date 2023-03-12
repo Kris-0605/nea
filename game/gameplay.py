@@ -524,31 +524,28 @@ class FallingBean(Bean):
             self.primary.state = TEXTURE_STATE_IDS["WHITE"]
         elif self.counter % 200 == 0:
             self.primary.state = TEXTURE_STATE_IDS["NORMAL"]
-        
-        while True:
-            try:
-                if self.grid.input_handler.rotation:
-                    self.rotate()
 
-                if self.grid.input_handler.state == ACTION_IDS["MOVE_RIGHT"] or self.grid.input_handler.state == ACTION_IDS["MOVE_LEFT"]:
-                    if self.verify_placement():
-                        self.column += 1 if self.grid.input_handler.state == ACTION_IDS["MOVE_RIGHT"] else -1
+        try:
+            if self.grid.input_handler.rotation:
+                self.rotate()
 
-                if self.counter % (self.fall_rate//20 if self.grid.input_handler.state == ACTION_IDS["DOWN"] else self.fall_rate) == 0:
-                    if self.row % 1 == 0.5:
-                        self.row -= 0.5
-                    elif self.row == 0 or (self.rotation_state == 2 and self.row == 1):
-                        self.place_beans()
-                    elif self.grid.values[self.primary_position()-self.grid.columns] or self.grid.values[self.secondary_position()-self.grid.columns]:
-                        self.place_beans()
-                    else:
-                        self.row -= 0.5
+            if self.grid.input_handler.state == ACTION_IDS["MOVE_RIGHT"] or self.grid.input_handler.state == ACTION_IDS["MOVE_LEFT"]:
+                if self.verify_placement():
+                    self.column += 1 if self.grid.input_handler.state == ACTION_IDS["MOVE_RIGHT"] else -1
 
-                break
-            except IndexError:
-                self.grid.values += [None]*(int(self.column+self.grid.columns*(self.row+1))-len(self.grid.values))
-                if self.counter % self.fall_rate == 0:
+            if self.counter % (self.fall_rate//20 if self.grid.input_handler.state == ACTION_IDS["DOWN"] else self.fall_rate) == 0:
+                if self.row % 1 == 0.5:
                     self.row -= 0.5
+                elif self.row == 0 or (self.rotation_state == 2 and self.row == 1):
+                    self.place_beans()
+                elif self.grid.values[self.primary_position()-self.grid.columns] or self.grid.values[self.secondary_position()-self.grid.columns]:
+                    self.place_beans()
+                else:
+                    self.row -= 0.5
+        except IndexError:
+            self.grid.values += [None]*(int(self.column+self.grid.columns*(self.row+1))-len(self.grid.values))
+            if self.counter % self.fall_rate == 0:
+                self.row -= 0.5
 
     def primary_position(self):
         return self.column+self.grid.columns*int(self.row)
@@ -556,13 +553,13 @@ class FallingBean(Bean):
     def secondary_position(self):
         match self.rotation_state:
             case 0:
-                return int(self.column+self.grid.columns*(self.row+1))
+                return self.column+self.grid.columns*int(self.row+1)
             case 1:
-                return int(self.column+1+self.grid.columns*self.row)
+                return self.column+1+self.grid.columns*int(self.row)
             case 2:
-                return int(self.column+self.grid.columns*(self.row-1))
+                return self.column+self.grid.columns*int(self.row-1)
             case 3:
-                return int(self.column-1+self.grid.columns*self.row)
+                return self.column-1+self.grid.columns*int(self.row)
             case _:
                 raise ValueError("Invalid rotation state")
 
@@ -574,6 +571,8 @@ class FallingBean(Bean):
             self.column -= 1
         if self.rotation_state == 3 and (self.column == 0 or self.grid.values[position-1]):
             self.column += 1
+        if (self.rotation_state == 0 or self.rotation_state == 2) and (self.row < 1 or self.grid.values[position-self.grid.columns]):
+            self.row += 1
 
     def relative_to_falling(self, primary_or_secondary): # True for primary, False for secondary
         offset = 1 if self.grid.input_handler.state == ACTION_IDS["MOVE_RIGHT"] else -1
@@ -582,7 +581,7 @@ class FallingBean(Bean):
             return True
         if offset == -1 and position % self.grid.columns == 0:
             return True
-        return bool(self.grid.values[position-offset]) or False if not self.row % 1 else bool(self.grid.values[position-1+self.grid.columns])
+        return bool(self.grid.values[position+offset]) or (False if not self.row % 1 else bool(self.grid.values[position+offset+self.grid.columns]))
 
     def verify_placement(self):
         return not (self.relative_to_falling(True) or self.relative_to_falling(False))
