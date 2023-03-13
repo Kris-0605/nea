@@ -6,12 +6,17 @@
 \usepackage{subcaption}
 \usepackage[colorlinks=true, allcolors=blue]{hyperref}
 \usepackage{minted}
+\usepackage{fancyhdr}
 
 \setlength\parindent{0pt}
 
+\fancyfoot{}
+\pagestyle{fancy}
+\rfoot{By Christopher Ashford}
+\cfoot{\thepage}
 \title{DRMBM (1994) remake}
 \author{Christopher Ashford}
-\date{September 2022}
+\date{March 2023}
 
 \begin{document}
 \maketitle
@@ -186,7 +191,7 @@ Disadvantages:
 \section{End User Input}
 
 Being a popular game, many people enjoy the Puyo Puyo franchise, but the best people to survey for this project were the people who were most familiar with DRMBM specifically - speedrunners. A lot of the research in this document was greatly helped by the members of the "Puyo Speedrun" Discord server, and the contributers to the DRMBM-specific channel they have there.
-In order to efficiently collect statistical end user input, a form was created using Microsoft Forms, a PDF version of which can be found here: \href{https://github.com/Kris-0605/nea/blob/master/documentation/NEA.pdf}{https://github.com/Kris-0605/nea/blob/master/documentation/NEA.pdf}
+In order to efficiently collect statistical end user input, a form was created using Microsoft Forms, a PDF version of which can be found here: \href{https://github.com/Kris-0605/nea/blob/master/documentation/Survey.pdf}{https://github.com/Kris-0605/nea/blob/master/documentation/Survey.pdf}
 
 Question 1: Have you played Dr Robotnik's Mean Bean Machine before?
 \begin{itemize}
@@ -499,662 +504,485 @@ If the project goes well, the aim is to include:
 
 The project shall be written in Python 3 because it is the language I have the most experience with. The third-party Pygame module shall be used for rendering graphics to the screen because of it's well-written documentation and ease-of-use.
 
-\section{The Engine}
+\section{Engine classes}
 
-\subsection{Why?}
+When creating a game, it is important to create a generalised, versatile and reusable structure. Additionally, performance and consistent timing of backend tasks are important to this project. Thus, before approaching the game I first created a module that would be helpful in the game's development by containing code and classes that would be consistently reused. This module, which I will refer to as the engine module, contains three main classes: Engine, Entity and Scene. Entities are things individual things that need to be drawn on screen or processed, a Scene object defines reusable functions and information about how entities should be defined and an Engine object has a relationship of aggregation with Scenes and Entities, is capable of loading and destroyed them, and handles backend and threading tasks.
 
-Stacker games like Puyo Puyo at a competitive levels have a lot going on very fast at a competitive level. It is important that there is very little "input lag" (the amount of time between pressing a button and an action happening on-screen) and processing of the game's backend will need to be fast and responsive. When considering the fast-paced, accurate gameplay of a game like this, the minimum acceptable speed for the games backend to be running in terms of updating things like board state would be a rate of 600 updates per second. Furthermore, it is important that this number be a constant rate, for ease of storing replays and to ensure that when comparing the games of two competitve players that neither has an unfair advantage.
+\subsection{Entity}
 
-However, this presents a problem: the majority of computers are unable to process graphical ouput at a rate of 600 frames per second, it is simply too fast for most computers to handle. Somehow, the program needs to be capable of handling the updating of the game's state, and rendering the games graphics, at independant rates. One potential solution to this could be something to similar to what a game like Minecraft does, running a server in an entirely separate process to where the game's rendering takes place, and then passing information over a local network. I would prefer to avoid this solution as network packets do not allow you to easily transfer Python objects directly, which will limit what the software is capable of and make development harder in the future. Instead, I intend to implement a multithreaded solution, which is what the engine exists to manage.
+An Entity is a base class that is designed to be inherited from to quickly implement new types of objects on screen or that need to be processed. It has the following attributes and methods:
 
-Before we continue it is important to understand how threading works in Python. Python has a feature known as the Global Interpreter Lock, or GIL for short. The GIL ensures that Python bytecode can only execute on one thread at once, ensuring that data cannot be corrupted by having multiple threads accessing it at once.
+\subsubsection{persist}
 
-When trying to run a program across multiple CPU cores, a developer in python has three options provided with Python's standard library: the threading, multiprocessing and asyncio modules. 
+The Entity class defines persist to be False by default, but it could be changed to True by someone creating an entity. If persist is set to False, then when the engine loads a new scene, the entity will be destroyed. If persist is true, it will remain throughout different scenes until explicitely destroyed.
 
-The threading module allows the user to run tasks across multiple CPU cores that share the same space in memory, therefore meaning it is affected by the GIL. This means that for computationally intensive tasks, threading is not faster as only thread can run bytecode at a time. However, when considering programs that require waiting, such as using the sleep function, waiting for input from the user or waiting for a response from a network request, other threads can process while this waiting is taking place. Threading is also very useful for structuring a program.
+\subsubsection{\_\_init\_\_}
 
-The multiprocessing module is capapble of speeding up programs on multi-core machines by running multiple processes. However, this has the disadvantage of these processes not sharing memory, making it difficult to share data between them.
+This method has the parameters engine, scene and id. It expects the inputs to these parameters to be the engine object, the scene object that is creating the entity, and a unique integer ID. This function should be overwritten so that a developer may initialise their own entity, and the developer is expected to maintain these three positional arguments in this order, in addition to adding their own arguments and keyword arguments. A developer can easily execute this \_\_init\_\_ function in addition to their own by running "super().\_\_init\_\_(engine, scene, id)"
 
-The asyncio module implements asynchronous development in python. Many tasks are completed out of order on a thread. It is faster for things that do not need to be ran in order and require waiting, such as completeing networking tasks.
+\subsubsection{init}
 
-Multiprocessing would make sharing data complicated and asyncio wouldn't be appropriate due to it's out-of-order execution so my proposed solution is to use the threading module. This may seem confusing at first due to there being no major speedup, however the threading module solves the problem given above: updating and rendering can be run on separate threads.
+This method should largely be ignored and is used initialise the attributes of the default Entity in the case that this class was to be initialised directly instead of being inherited from. Loading Entity directly creates a spinning square.
 
-The Engine class is a class that is designed to handle these threads. If seperate threads are handling the game's backend and frontend, then the backend can run at a constant 600 updates per second using sleep statement and rendering can run at a different rate on a different thread. 
+\subsubsection{update}
 
-There are further tasks which the engine must handle, which are described below.
+A developer is expected to override this function. It is executed at a set rate by the update thread, explained more in the Engine class section. It should be used for backend tasks, and tasks that need to happen at a constant rate such as animations.
 
-\subsection{Engine utility methods}
+\subsubsection{render}
 
-\subsubsection{Input and pygame events}
+A developer is expected to override this function. It is executed every time a frame is rendered and therefore should not be expected to run at a constant rate. This function should not complete any backend tasks and should instead draw on screen with pygame functions a representation of what is happening in the backend.
 
-Pygame events are unintuitive; you are required to iterate through a generator object every frame or the program will freeze, and even then the events that are returned aren't particularly user friendly. Due to their link to frames the rendering thread will have to iterate through events however they will be accessible using a public attribute of the engine. Additionally for ease of use there shall be several methods of the engine that simply return True or False for queries such as "has this key been pressed" or "is the mouse within this radius of this point/within this box". This should make entity code easier to read.
+\subsection{Scene}
 
-\subsubsection{Networking}
+A Scene is a base class that is designed to be inherited from to easily implement the loading of many entities. An example of this would be transitioning from a menu to gameplay by loading the gameplay scene, destroying the entities from the menu scene It has the following attributes and methods:
 
-As mentioned before, asyncio is very useful for making network requests. For this reason, the module aiohttp will be used to make network requests on the main thread. Executing requests on the main thread like this prevents the program from freezing by not blocking other threads. However, executing the requests on a separate thread presents a problem of how to return the information, since the function that tries to make the request cannot simply return the information, as this would block the rest of that thread's objects from being updated.
+\subsubsection{load\_with\_pbar}
 
-My proposed solution is as follows: When an object needs to make a request, it shall call a method of the Engine class. The Engine class will have a counter (starting at 0 and increasing by 1 every time this subroutine is called). Calling the method will increase this counter, and append the information required to make the request (such as the type of request, the url, the data to be passed, etc.), which will have been passed in as keyword parameters, to a dictionary (that is a variable of the engine class), using the value of the counter as the key and the information required to make the request as the value. The value of the counter should then be returned to be saved by the object that made the request.
+This attribute should be an iterable such as a list or tuple. If filled with filenames, then before the loading of this scene, a built-in progress bar scene will be used to load the files listed into the engine's asset cache.
 
-Every 0.01 seconds, the main thread will execute all the requests in the dictionary as aiohttp asynchronous requests (note that these are non-blocking), with the results to be saved in a second dictionary, with the key being the same counter value and the value being the results from the returned request (note that these will have to be parsed because the original request object must be parsed asynchronously and thus cannot be used by object that made the request, which is synchronous).  
+\subsubsection{update\_rate}
 
-Then, when the object that wanted to make the request is later called again, it should call a second method of the Engine class, this time with the originally returned counter value as a parameter, acting as an ID for the request that was made. If the main thread has not yet completed execution of the request, then the method should return a None value, and if the request has been completed then the value stored in the dictionary should be stored in a local variable, deleted from the dictionary to save on memory consumption and finally returned to the object. Using this ID system, requests can be made by objects in a non-blocking manner, and using aiohttp will allow a large number of requests to be made in a short amount of time for tasks such as the retrieval of assets from an external server.
+This attribute should be a positive non-zero integer, and represents the number of updates per second the engine will attempt to execute for the duration of the scene. Since tasks are designed to expect a constant rate from this number, halving this number would create the effect of running a scene's backend at half speed, and drastically reducing it would make the scene appear to be running in slow motion.
 
-\subsubsection{Sound}
+\subsubsection{render\_rate}
 
-Pygame has two ways to play sound: the simpler mixer.music class and the advanced mixer class. mixer.music is not appropriate for this project, because it only allows you to play one sound file at a time, thus mixer is required. However, the mixer class comes with some limitations, and it's these limitations that the engine class exists to overcome.
+This attribute should be a positive integer, and represents the number of frames per second the engine will attempt to render for the duration of the scene. Reducing this number would make the scene's backend still run at the same speed, but the output would appear choppy. Setting this number to 0 will cause the engine to try and render as many frames as possible without waiting.
 
-pygame.mixer uses channels, where any channel can play one sound at a time. Pygame defaults to using 8 channels, and the number of channels can be increased or decreased at any time. I want any object that wishes to play a sound to be able to do so with a single function call, thus the engine will have a method that accepts sound bytes as input. The engine will then create a new channel if necessary and play the sound, returning an integer that corresponds to the channel. This then allows the object to use other engine methods to control the channel, such as pausing or stopping the sound. Other useful engine sound methods include the ability to stop all playing sound.
+\subsubsection{background}
 
-pygame.mixer accepts .ogg files as input, to allow multiple sounds to be played as once. However, for the convenience of modders and people attempting to alter the game's assets, I believe that any audio file should be acceptable as an asset. For this reason, the program shall be distributed with an FFmpeg binary. FFmpeg is a powerful, open-source media conversion tool. In this case, it will be used by the engine to convert other audio files to .ogg. Upon initalisation, the engine will load the textures in using their original filenames and extensions. Then, a temporary folder will be created, and for any file with an extension contained within a hard-coded list of audio files such as .wav or .mp3, FFmpeg will be launched as a subprocess to convert the files to .ogg in the temporary folder, the new files will be loaded and converted to pygame.mixer.Sound objects, still referred to by their original filenames, and the temporary folder will be deleted.
+background is both an attribute and a method. It is expected that background be a function object, but by default this is implemented as a lambda function assigned to a variable. background will be called every frame before entities are rendered and by default will fill the screen with black, clearing it.
 
-\subsubsection{Graphics}
+\subsubsection{music}
 
-There are some complex, commonly used functions that don't make sense to re-write every time you want to use them, and thus it makes sense to simply have a method for them. An example that comes to mind would be particles: the engine could have a method where a texture, position and particle count and whether the particles should have gravity would be passed in, and an object would be created to fulfill that task, instead of being down to the programmer using the engine to implement. An exhaustive list won't be provided here as I simply don't know what will be useful, and what I'll have time for at this point.
+Another combination between an attribute and a method, music is a function that should return a pygame Sound object. This sound will then loop until another scene is loaded.
 
-\subsubsection{Logging}
+\subsubsection{kap}
 
-This engine will be written in Python 3. Python 3's print function is slow, slow enough that I feel the need to directly flush to stdout for a program that is completing this many operations on a single CPU core. The engine will two private attributes, the console log and the full log. Log functionality will require five built-in python modules: sys, os, threading, atexit and time. 
+This attribute should be an iterable, such as a list or tuple, of strings. When loading the scene, the engine will ensure that all the KAP files listed are loaded to ensure that textures are accessible. KAP files will be explained later in this section.
 
-The engine will have a method that can be called to append something to the log. A single parameter will be used to pass in what should be appended to the log as a string. The method will then convert this string into a standard format: the threading module will be used to find the ID of the thread that the function was called from and the time function will be used to give the log entry a timestamp, representing the number of seconds since the program started. Then a coloured version of the log (using ANSI escape codes) will be appended to the console log and a plaintext version to the full log. An example log entry could look like this:
+\subsubsection{\_\_init\_\_}
 
-\vspace{0.5cm}
+This method is expected to be overrided. Its only positional argument is engine, expecting the engine object that is loading the scene, which is then assigned to self.engine. A developer can either implement this by running "super().\_\_init\_\_(engine)", or just running "self.engine = engine".
 
-\textcolor{magenta}{Welcome to Kris's Engine!}
+\subsection{Engine}
 
-Log initialised at 1668108523.8011909
+The Engine contains many methods and serves many purposes. The main purpose of the engine is to manage a multi-threaded structure. Updates and rendering are handled independantly on different threads at different rates. This is done to allow them to run at different rates, as well as to allow for an uncapped frame rate and improved performance in such a performance-critical genre such as stacker games.
 
-\textcolor{magenta}{[Main thread at 0.1000968]}
+\subsubsection{\_\_init\_\_}
 
-Warning! Failed to convert asset "purple13.png" to Pygame surface object. Corrupted file? Purging from textures.
-
-\textcolor{red}{[Update thread at 39.7935968]} Error! ZeroDivisionError updating Entity of type AI, skipping.
-
-\textcolor{blue}{[Render thread at 51.615771]} Error! BaseException render Entity of type Bean, skipping.
-
-\textcolor{magenta}{[Update thread at 161.0327687]} Warning! Last update took 2.3ms longer than allocated, the game is lagging!
-
-\vspace{0.5cm}
-
-Upon engine initialisation, first the code "os.engine("")" must be ran. This will enable ANSI escape code colours on Windows, and do nothing on other platforms. A function shall exist that simply dumps the full log to a log text file, and this function should be queued up using atexit. This module will ensure that the function always executes when the program terminates. Then, a thread will be started: this thread shall every 0.1 seconds use sys to flush the contents of the console log to stdout (the console) if it's not empty, and then empty it.
-
-\subsubsection{Global error handling}
-
-We can use sys.excepthook to create a function that globally handles errors by reporting the error to both the user and a remote web server without the program crashing.
-
-\subsection{Object structure}
-
-The engine is a complex object oriented model that work on the basis of all composed classed inherited from two classes: scenes and entities. Since I'll probably end up naming the engine Kris's Engine, when importing kris\_engine.main we now have kris\_engine.main.Engine, kris\_engine.main.Scene and kris\_engine.main.Entity.
-
-\subsubsection{Entity}
-
-An Entity represents a building block, an element of what should be going on. In it's simplest capacity, an entity is something you want to draw to the screen, however an entity doesn't have to be visible and can be used only for processing in order to keep the code's structure cleaner.
-
-For an Entity object to be valid, it must have at least two methods: update and render. If an entity does not have this, the engine will error, thus all valid entities must inherit from kris\_engine.main.Entity. kris\_engine.main.Entity will contain the two methods update and render, which both take no arguments other than themselves (self), as all information they need can be gotten from the engine (it of course makes sense for the entity object to contain the engine object within itself as an attribute). Render will draw to the screen a message detailing that this entity hasn't been correctly overwritten, a similar message will be appended to the log upon initalisation, and the update function will simply pass and not do anything. Inheriting from this class ensures that an object has to have the update and render methods, giving it less chance of erroring the engine. It is easy to verify whether an object has inherited from this class using the "\_\_mro\_\_" attribute. The engine simply has to check whether the default entity class is contained within the \_\_mro\_\_ tuple and if it isn't, an object that is supposed to be an entity should be discarded and an error message logged.
-
-Scenes override the entities that are loaded, but what if an entity should persist across scenes? Say, a message feature that should always be accessible in game or a custom music player add-on. For this reason all entities should have a "persist" attribute. This value will be a boolean True or False, and will default to False. False means the entity object should be destroyed when loading in to a new scene and True means the entity should not be destroyed. Persistant objects are expected to be rendered first relative to all other objects, and objects from a new scene shall be appended after persistent entities in the list of entities.
-
-It may be useful to be able to uniquely identify an entity, especially for logging purposes. Thus, upon initialisation, an entity shall be assigned a public "id" attribute by the engine. This shall be unique and shall be obtained using a counter from the engine class that is increased every time an entity is initialised. Additionally, so that entities may interact with other entities, a public attribute of the engine, "entities", will house a dictionary where the key is the public id of the entity and the 
-
-Any textures that are accessed by an entity should use a method of the engine class, get\_texture, passing in a string referring to the name of the texture file (texture file names must be unique), which will then return the pygame surface object for the texture. There will be a deload\_texture method for if an entity knows that a texture is no longer required, such as during a cutscene.
-
-Any other attributes are the responsibility of the developer using the engine to assign and manage.
-
-\subsubsection{Scene}
-
-Separate scenes should be split into separate python files, which should make it easy to find, read, edit and manage scenes. 
-
-A valid scene should meet the following:
-
+This method has many keyword arguments.
 \begin{itemize}
-\renewcommand\labelitemi{--}
-    \item A scene should be contained within a python script file
-    \item The first line of the file should be "from kris\_engine import Scene"
-    \item The file should contain a single class
-    \item The last thing this class inherited (as shown by the \_\_mro\_\_ attribute) should be the kris\_engine.main.Scene class.
-    \item Additionally, the engine should check for the string "\_\_mro\_\_" within the scene's code, to prevent potential modification.
+    \item scene represents the scene that the engine should load. If none is given, the default Scene class is initialised.
+    \item width and height represent the pixel size of the window
+    \item engine\_path and log\_path are used to specify the location of files relative to the programs current point of execution
+    \item texture\_quality controls the resolution at which image textures are loaded, using this feature of KAP files
+    \item log\_max\_size specifies a maximum size for the log file before it begins to be trimmed from the top. This defaults to 10MB.
 \end{itemize}
 
-All of these verification steps are justifiable.
+All of these are stored in private variables that can be access but not written to, with the exception of texture\_quality, which has a setter than flushes the engine's asset cache when the texture\_quality is changed in order to load the textures of a new quality.
 
+This function initialises id, a getter that increments the id attribute for creating unique entity IDs.
+
+The logging thread is then initialised.
+
+The now depreciated config file is then loaded.
+
+Some timers are set and attributes are defined, then pygame is initialised.
+
+Default assets, to be used if an asset it missing, are loaded.
+
+More attributes are defined and the pygame window is created.
+
+The update and render threads will be started, and the specified scene will be loaded.
+
+Then, the engine will collect pygame events, using event\_gotten to synchronise with frames on the render thread, until the program exits when pygame will be quit and the main thread will terminate.
+
+\subsubsection{init\_log}
+
+Printing in python is slow. The logging thread periodically flushes log messages to the console, flushing multiple messages at a constant interval to save on processing time. These messages are in a constant format detailing the time since execution of the program began, and colour coding messages with ANSI escape codes, the colour being dependant on the thread the message was made with. Additionally a separate log is kept without ANSI escape codes to be stored in a text file.
+
+This method creates the necessary variables for this system to function, and starts the thread that dumps the log to the console. It has no parameters.
+
+\subsubsection{loop\_log}
+
+The method that is passed to the thread for execution until the program is terminated. This method outputs the log to the console and then waits for a period of time specified in init\_log. Sleeping in a thread only pauses that thread, so this allows other execution to continue. It has no parameters.
+
+\subsubsection{exit\_log}
+
+This method uses Python's "atexit" module to write the log to a text file when the program is terminated. It has no parameters.
+
+\subsubsection{append\_log}
+
+This method takes a message (a string) as a parameter and formats a log message by getting information about the current thread and current time.
+
+\subsubsection{load\_config}
+
+This method used to be used to load the information that is now specified by keyword variables. It is no longer used, but can be used by a developer if they wish to load additional settings. It looks for a config.json file and if it exists, assigns the contents of the file to a config dictionary attribute. It has no parameters.
+
+\subsubsection{save\_config}
+
+This method saves the content of the config parameter to a JSON file. It has no parameters.
+
+\subsubsection{get\_events}
+
+This method is used to fetch pygame events and put them into a list, the events attribute. It also checks for a pygame.QUIT event, which happens when the close button is pressed on the window. This sets the running attribute to False. All threads should use "while self.running" for any infinite loops, meaning that they will finish executing that iteration and then terminate when self.running is set to False. This function has no parameters.
+
+\subsubsection{get\_asset}
+
+This method is accepts a filename as a required parameter. It will either load the given file into a cache (at the assets attribute, or the font\_assets attribute), or load it from the cache if it is already there. It will return a pygame object version of the specified file. So, if audio is set to True, then a pygame.mixer.Sound object is returned. If font is set to an integer then a version of that font rendered at the given font size is returned as a pygame.font.Font object. Otherwise, a pygame surface object is returned. This function can also scale image textures using the \_\_scale method and store the scaled copies, to prevent scaling being done frequently. Additionally, if a given filename is not found in an loaded KAP files, this function will return an alternative of the same filetype from "default.kap" in the engine folder.
+
+\subsubsection{\_\_scale}
+
+Accepts two positional arguments, scale and path. scale can be one of three types: a string "raw", a tuple containing a width and height for the image to be scaled to, or a float. If a float is provided, then the image will maintain it's original asepct ratio, and be scaled such that the height is equal to the float specified multiplied by the window height of the engine.
+
+\subsubsection{load\_entity}
+
+This method accepts an entity and a scene as positional arguments, as well as allowing for additonal arguments and keyword arguments to be passed into the entity upon it's initialisation. scene should be an initialised scene object while entity should be a class that hasn't been initialised yet. First this method will verify that the class given has inherited from the Entity class, then it will generate a unique ID, initialise the entity and store it, creating a relationship of aggregation between the Grid and the entity. It will then return the entity object.
+
+\subsubsection{destroy\_entity}
+
+Takes a single positional argument, being an initialised entity object. First the method verifies that the object passed in inherited from the Entity class, then it removes it from the entity list and dictionary of entity IDs. This is the only way to destroy an entity with persist set to True. This method will fail if the passed in entity is no longer owned by the engine.
+
+\subsubsection{load\_scene}
+
+This takes a positional argument, being a not-yet-initialised class that inherited from Scene. pbar is a keyword argument that needs to be set to False by a progress bar when trying to load a scene that has been loaded with a progress bar to prevent an infinite loop of calling the progress bar, otherwise it should be left alone. All other arguments and keyword arguments are passed into the scene upon initialisation.
+First, this method sets the ready attribute to False, which pauses the update and render threads. Then, it verifies that the class being passed in inherited from the Scene class. Then, it will load all the KAP files given by the kap attribute of the scene. Then, it will destroy all non-persistant entities from the last scene. Then, if the pbar keyword is set to True and the scene has files in the load\_with\_pbar attribute, then the progress bar class is loaded for loading the files. Otherwise, other attributes from the scene are processed, the scene object is initialised, timers are reset and the update and render threads are unpaused.
+
+\subsubsection{\_\_size}
+
+A method used for calculating the amount to increment the progress bar by for a given file, by using its compressed size. It takes a single argument, being the file name.
+
+\subsubsection{update\_loop}
+
+This is a method that takes no arguments and is executed by the update thread. First, it assigns itself a colour, and then loops while the running attribute is True. Then, it does nothing if ready is set to False, to pause execution while a scene is being loaded. If ready is True, then the update\_counter attribute is incremented. For every entity in the ordered entity list, the update method is called. Then, the events attribute, a list of pygame events, is trimmed to remove the events that have already been process. Finally, the method calculates how long it needs to wait for to maintain a constant update rate, and outputs a lag message every two seconds if it detects that it is behind.
+
+\subsubsection{render\_loop}
+
+This is a method that takes no arguments and is executed by the render thread. First, it assigns itself a colour, and then loops while the running attribute is True. Then, it does nothing if ready is set to False, to pause execution while a scene is being loaded. If ready is True, then the render\_counter attribute is incremented. The background method for the currently loaded scene is called to clear the scene. Then, for every entity in the ordered entity list, the render method is called. Then, the thread waits for the main thread to collect pygame events (this must be done once per frame but also must be done by the main thread). Once this is done, the pygame display object is updated, drawing the frame. Finally, if the render rate is not uncapped, the method calculates how long it needs to wait for to maintain a constant frame rate, and outputs a lag message every two seconds if it detects that it is behind.
+
+\subsection{Class diagram}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1\textwidth]{Class diagrams-1.png}
+\caption{\label{fig:class1}A class diagram of the main three engine classes}
+\end{figure}
+
+\section{Other engine scripts}
+
+You will have seen referenced above many times the concept of KAP files. This is because of another module: kris\_engine.files. This implements a custom file type KAP which packages and compresses textures.
+
+\subsection{files.KAP}
+
+A wrapper for KAP files. KAP stands for Kris's Asset Package and a KAP file is designed to store many textures in a single file. It will also store different resolution copies of images for different texture qualities and compress data with a variant of run length encoding.
+
+A KAP file is structured in two parts: a string portion and a byte portion. Some rules about the string portion:
 \begin{itemize}
-\renewcommand\labelitemi{--}
-    \item Using a python file to contain a single scene makes it easy to add new scenes without modifying existing files.
-    \item Any engine project will contain multiple python files. Using the first line to import the scene class allows the engine to quickly identify which files should be considered scene classes and which should be ignored. If a file that isn't a scene wants to import the scene class, this can easily be bypassed by importing other modules first or adding a comment.
-    \item By having a scene not contain the entities that it will create within its own file and instead having to import them, entities that are used in multiple scene files will not be written out multiple times.
-    \item The \_\_mro\_\_ string prevents the engine from running arbitrary code from a file that is not a valid scene class. Additionally we can check if the attribute is referenced within the scene itself, a basic way to check if the value may have been modified. This is a simple way to prevent the user from running a potentially invalid or malicious scene file.
+\item All integers are unsigned and most significant bit first
+\item All strings are UTF-8
+\item A 0 byte is eight bits with a value 0
 \end{itemize}
 
-It is the job of a scene file to define which entities should be present in a scene and provide useful information about things such as the framerate and update rates and the order entities should be rendered.
+The file begins with a 16-bit integer magic byte, 1993. This helps verify that we're loading the right file type. Then, an 8-bit integer representing the number of texture quality options available. Then, for as many qualities as the integer specified:
+\begin{itemize}
+\item string data detailing the name of the setting
+\item a 0 byte
+\item a non-zero 8-bit integer that the texture quality should be assigned to
+\end{itemize}
 
-A developer can set two optional attributes, framerate and updaterate. These are optional because if not given the engine will use hardcoded defaults.
+Then, there's a 32-bit integer detailing how many textures there are. Each entry of the rest of the string portion is structured as follows:
+\begin{itemize}
+\item string data detailing the name of the file
+\item 0 byte
+\item 8-bit integer representing how many texture qualities the file has
+\item if this byte is 0:
+\begin{itemize}
+    \item 64-bit integer, indicating the pointer at which the file data starts in bytes
+    \item 64-bit integer, indicating the size of the file in bytes
+\end{itemize}
+\item if this byte is greater than 0, repeat the following for the value of the byte:
+\begin{itemize}
+    \item 8-bit integer corresponding to a texture quality
+    \item 64-bit integer, indicating the pointer at which the file data starts in bytes
+    \item 64-bit integer, indicating the size of the file in bytes
+\end{itemize}
+\end{itemize}
+Then the corresponding files will be dumped as RLE bytes into the files at their corresponding pointers.
 
-Depending on the scene a loading screen may be useful. So, a scene will have two attributes, "loading\_screen" and "loading\_screen\_entity". By default loading\_screen will be False but may be set to True by a scene. By default loading\_screen\_entity will refer to a built-in entity file that exists as a default loading screen. If set to any other value that entity will be loaded. There will be an attribute of the engine that the entity can access to monitor the progress of loading in order to allow a loading bar to exist.
+RLE bytes are bytes that are run length encoded. RLE bytes start with a byte that is comprised of two 4-bit integers. The first represents counter\_length, the second pattern\_length. Pattern length represents the size of chunks of data that we are processing (allowing us to compress something like 101010101010 efficiently with pattern length 2), and counter length represents the numnber of bytes allocated to storing the multiplier for a given piece of data. These are required information to encode and decode RLE bytes. Then we have to consider the excess. Take an example where we have a file with an odd number of bytes and pattern\_length 2. For the algorithm to look for patterns of length 2, we need to trim the first byte off. So, the second byte is an 8-bit integer representing the size of the excess. If this is 0, move straight on to the data, otherwise append the following number of bytes to the front of the output. Then, the rest of the bytes are in the pattern of counter\_length bytes, pattern\_length bytes. To decode, repeat the pattern\_length bytes the value of the counter\_length bytes times.
 
-While this is happening of course, we want to be loading somethig. The get\_texture method mentioned earlier will either create a pygame surface object and cache it or return it if it's already been cached, so another convenient method of the engine class, load\_textures, will allow a scene during it's initialisation to pass in a list of strings and load all of the required textures.
+The KAP class is used as a wrapper for loading KAP files. It has the following methods:
 
-It is recommended that a scene 
+\subsubsection{\_\_init\_\_}
 
-NOT FINISHED NOT FINISHED NOT FINISHED NOT FINISHED
+This method has a positional parameter path, representing the path to the KAP file that is to be loaded. It also has an optional engine paramater, like many of the functions in the KAP class, which is used for outputting to the engine log if the engine object is passed in.
 
-\section{Technical Solution}
+This function creates a file map, which is a dictionary that tells us which KAP file an asset comes from (the KAP class can load multiple KAP files at once). The assets dictionary is also created, containing information about the location and size of each file in a KAP file. An open dictionary is created, storing the file objects for the open KAP files, and a function is registered that closes them when the program terminates. Then the named KAP file is loaded with load\_kap.
 
-Due to the nature of how I've gone about this project, at this point in time I cannot show any algorithmic complexity, as the algorithmic complexity will be included in the gameplay. This file is the basis off of which the rest of my complex OOP model will be built. Though it's hard to tell from this script, gameplay elements will inherit from the Entity and Scene classes and the Engine class will be composed of entities and scenes (the relationship between entities and the engine is one of aggregation), and while the entities for the game have not been coded yet, the entities will be dynamically created and destroy as they are needed. While not given here explicitely this script lays down the foundations of a complex OOP model. Additionally, while a very basic example, you can see an example of encapsulation on line 428 (please ignore the class from 473 to 507 as while this uses encapsulation I did not write it.)
-Apologies for not having much to show for now but I promise there is much to come.
+\subsubsection{\_\_del\_\_}
 
-\subsection{\_\_init\_\_.py}
+Used to close all open files objects when the KAP instance is deleted or the program terminates. Takes no arguments.
 
-\begin{minted}[breaklines, linenos]{python}
-# pygame is a third-party module for rendering graphics and playing sound
-import pygame
-# Here, json is used to create a config file where settings can be stored
-import json
-# os is used for file system operations such as looking at files in a folder
-# as well as running commands on the command line to enable things like
-# coloured text inside the console.
-import os
-# Used for global except hook and dumping to stdout
-import sys
-# Used for managing threading
-import threading
-# Used for running function on program termination
-import atexit
-# Used for getting information about the current time and how long the program
-# has been running for as well as sleeping
-import time
-# platform is used to determine information about the system the code is running on
-# This is useful for things like selecting the correct FFmpeg binary
-import platform
-# subprocess is used for controlling FFmpeg
-# FFmpeg is used for converting audio files, and possibly later video files
-import subprocess
-# Right now just picks a random number
-import random
+\subsubsection{load\_kap}
 
-# defining the main engine class
-class Engine:
-    # in python, __init__ is run when a class is initialised
-    # self refers to the object that is being initialised
-    def __init__(self):
-        # DO NOT USE WHILE TRUE
-        # Only self.running, so threads terminate
-        self.running = True
-        self.started = False
+Takes one argument, being the name of the KAP file to be loaded. Uses advanced file operation to load the KAP file, the structure of which is described above.
 
-        # Counter for generating unique integers, see the id property
-        self.__id = 0
+\subsubsection{string\_data}
 
-        self.init_log()
-        time.sleep(0.01) # Just to make sure the thread has started
+A method used by load\_kap for finding where strings of unknown length terminate.
 
-        self.append_log("Loading config file...")
-        self.load_config()
+\subsubsection{load}
 
-        # Variables used to store the last time a message saying that
-        # the update or render threads were behind was sent so that
-        # the console doesn't get spammed
-        self.lag, self.lag2 = time.perf_counter(), time.perf_counter()
+A method used for loading a file from a KAP file. It has a filename parameter and an optional quality parameter.
 
-        self.append_log("Spawning threads...")
-        self.__update_thread = threading.Thread(target=self.update_loop)
-        self.__update_thread.start()
-        self.__render_thread = threading.Thread(target=self.render_loop)
-        self.__render_thread.start()
+\subsection{Other files.py functions}
 
-        self.append_log("Initialising pygame...")
-        pygame.init()
-        self.append_log("Initialising pygame mixer...")
-        pygame.mixer.init()
+\subsubsection{rle\_encode}
 
-        self.append_log("Loading default assets...")
-        # I made missing.png but it's based on an industry standard
-        # I made missing.ogg in Audacity it's 1 second of 0.8dB 1000Hz sine wave
-        # temp_shop.ogg from https://undertale.fandom.com/wiki/Tem_Shop_(Soundtrack)
-        # ComicMono.ttf from https://dtinth.github.io/comic-mono-font/
-        self.__assets = {}
-        self.__fs_map = {x:x for x in os.listdir(self.engine_path+"\\resources")}
-        for x in self.__fs_map:
-            match x[-3:].lower():
-                case "ogg":
-                    self.__assets[x] = pygame.mixer.Sound(self.engine_path+"\\resources\\"+x)
-                case "png":
-                    self.__assets[x] = {"raw": pygame.image.load(self.engine_path+"\\resources\\"+x)}
-                case "ttf":
-                    self.__assets[x] = pygame.font.Font(self.engine_path+"\\resources\\"+x, 100)
+Implements the varianets of run length encoding specified above. See the comments in the technical solution for more details.
 
-        # It's handy to be able to organise textures into folders
-        # This map let's you use just a texture's file name to refer to it's path
-        # It also calls ffmpeg for audio files that are not ogg or wav
-        # since ogg and wav are the only thing pygame's mixer supports
-        self.append_log("Mapping file system...")
-        self.__fs_map |= self.map_fs(self.resource_path)
-        
-        # Ordered list, order decides rendering and updating order
-        self.__entities = []
-        # integer id: entity object
-        self.entity_id = {}
-        
-        # Create window
-        self.append_log(f"Creating window, (width, height) = ({self.width}, {self.height})")
-        self.screen = pygame.display.set_mode((self.width,self.height))
-        # Set window title
-        pygame.display.set_caption("Kris's Engine")
+\subsubsection{rle\_decode}
 
-        # This will be changed in a later version to be passed into the class
-        self.append_log("Loading default scene...")
-        self.load_scene(Scene(self))
+Decodes RLE bytes.
 
-        # pygame is weird and getting events must be done on the main thread
-        # The event gotten variable is set to False every frame and True every time events are fetched
-        # pygame will crash if events are not gotten every frame so this variable prevents a frame from 
-        # proceeding before events are collected, however this should be hardly needed as there is a sleep
-        # statement to sync it with the framerate. The subtraction of 1ms is to account for the time it 
-        # take to run the get events function.
-        self.events = []
-        while self.running:
-            self.get_events()
-            self.event_gotten = True
-            time.sleep((1/self.render_rate)-0.001)
-        pygame.quit()
+\subsubsection{rle\_brute}
 
-    def init_log(self):
-        # Allow coloured console text on Windows
-        os.system("")
-        self.__start_time = time.perf_counter() # Used for calculating how long the program has been running
-        # Use the built in thread ID system to assign colours to threads
-        self.__threads = {threading.get_ident(): {"colour": Colour(0xff00ff), "name": "Main"}}
-        # The coloured thing we dump to the console
-        self.__console_log = Colour(0xff00ff)+"Welcome to Kris's Engine!\n"
-        # The thing we dump to a text file
-        self.__full_log = "Welcome to Kris's Engine!\n"
-        self.log_loop = 0.1 # Number of seconds between dumping to console
-        atexit.register(self.exit_log) # Log will be saved on termination
-        threading.Thread(target=self.loop_log).start() # Create logging thread
+Used to test multiple pattern length and counter lengths, returns the compressed file that is the smallest (and therefore most effective).
 
-    def loop_log(self):
-        self.__threads[threading.get_ident()] = {"colour": Colour(0x10ebe1), "name": "Logging"}
-        self.append_log(f"Logging thread initialised at {time.time()}")
-        while self.running: # Repeat
-            sys.stdout.write(self.__console_log) # Dump to console
-            self.__console_log = "" # Clear console log
-            time.sleep(self.log_loop) # Wait
+\subsubsection{build}
 
-    def exit_log(self): # Dump log to text file on program termination
-        with open(self.log_path, "a") as f:
-            f.write(self.__full_log)
-            f.write("\n")
+Uses advanced file operations, as well as Pillow for image scaling for different image qualities, to build a KAP file.
 
-    def append_log(self, message):
-        # Get information about the thread that the logging request is being made from
-        # Pick a colour if we don't know about it
-        t = threading.get_ident()
-        if t not in self.__threads:
-            self.__threads[t] = {"colour": Colour(random.randint(0, (2**24)-1)), "name": "Unknown"}
-        thread = self.__threads[t]
-        # Only call time function once so time is consistent across logs
-        name_and_time = f"{thread['name']} thread at {time.perf_counter()-self.__start_time}"
-        self.__console_log += f"{thread['colour']}[{name_and_time}] {Colour(0xffffff)}{message}\n"
-        self.__full_log += f"[{name_and_time}] {message}\n"
+\subsection{pbar.py}
 
-    # reads from config file, converts json to dictionary, sets config attribute to data and returns data
-    def load_config(self):
-        # defaults
-        self.width, self.height = 1280, 720
-        self.resource_path = "resources"
-        self.engine_path = "kris_engine"
-        self.log_path = "kris_engine\\engine_log.txt"
+This contains a scene and entity that creates a progress bar loading screen. See comments in technical solution for more details.
 
-        # test for config file
-        self.config_exists = os.path.exists("config.json")
-        if self.config_exists:
-            with open("config.json", "r") as f:
-                self.config = json.loads(f.read())
-        else:
-            self.config = {}
-            self.append_log("Warning! Config file \"config.json\" was not found in parent directory! Are you running the script from the right place?")
-        
-        # If attribute is found in config data, it is loaded, otherwise use default
-        if "width" in self.config:
-            self.width = self.config["width"]
-            self.append_log(f"width \"{self.width}\" found in config.json, loaded.")
-        else:
-            self.append_log(f"No width found in config.json, using default width \"{self.width}\"")
+\section{Classes for gameplay}
 
-        if "height" in self.config:
-            self.height = self.config["height"]
-            self.append_log(f"height \"{self.height}\" found in config.json, loaded.")
-        else:
-            self.append_log(f"No height found in config.json, using default height \"{self.height}\"")
+For the implementation of the classic version of exercise mode, the code was split into two script files: exercise.py, containing the ExerciseClassic scene, and gameplay.py, containing everything else.
 
-        if "resource_path" in self.config:
-            self.resource_path = self.config["resource_path"]
-            self.append_log(f"resource_path \"{self.resource_path}\" found in config.json, loaded.")
-        else:
-            self.append_log(f"No resource_path found in config.json, using default resource_path \"{self.resource_path}\"")
+\subsection{Grid}
 
-        if "engine_path" in self.config:
-            self.engine_path = self.config["engine_path"]
-            self.append_log(f"engine_path \"{self.engine_path}\" found in config.json, loaded.")
-        else:
-            self.append_log(f"No engine_path found in config.json, using default engine_path \"{self.engine_path}\"")
+Grid is an entity that manages most of the gameplay. It has a relationship of aggregation with Bean, (which is not an entity).
 
-        if "log_path" in self.config:
-            self.log_path = self.config["log_path"]
-            self.append_log(f"log_path \"{self.log_path}\" found in config.json, loaded.")
-        else:
-            self.append_log(f"No log_path found in config.json, using default log_path \"{self.log_path}\"")
+\subsubsection{\_\_init\_\_}
 
-        if "ffmpeg_override_path" in self.config:
-            self.ffmpeg_path = self.config["ffmpeg_override_path"]
-            self.append_log(f"ffmpeg_override_path \"{self.log_path}\" found in config.json, will be used as FFmpeg path.")
-        else:
-            self.append_log("No FFmpeg override found. Getting FFmpeg path...")
-            if self.get_ffmpeg(): # this is different for different OSs so needs a function
-                self.append_log(f"FFmpeg found successfully at {self.ffmpeg_path}, FFmpeg operations enabled.")
-            else:
-                self.append_log("Warning! FFmpeg not found or faulty, faulty installation or unsupported system. Advanced users can use their own binary and set \"ffmpeg_override_path\" in config.json")
+In addition to the required entity parameters, grid has one positional argument, input\_handler, which is another entity that acts like a controller. It also has many keyword arguments: rows and columns representing the size and shape of the grid, values allowing the grid to start in a non-empty state, the position of the grid and the bean queue. This method creates most of the engine attributes, sets the grid's current state to GRAVITY and loads the BeanQueue entity and Score entity, which is loaded by the grid because it needs to directly access methods and attributes of these objects. Another thing worth nothing here is that values, containing Bean objects or None (representing an empty cell), is a 1D list, not a 2D list. This is because of the fact that beans can be placed "above" the grid (above the inputed number of rows, which simply decides the square that kills you and where falling beans spawn). Increasing the size of the list is easier with a 1D list than with a 2D list.
 
-    # overwrites file with the config attribute converted to json format
-    def save_config(self):
-        with open("config.json", "w") as f:
-            f.write(json.dumps(self.config))
-        self.append_log("The config file was overwritten.")
+\subsubsection{\_\_str\_\_}
 
-    def get_ffmpeg(self):
-        # Windows binary is version 5.1.2-essentials_build-www.gyan.dev from www.gyan.dev
-        # Mac x86_64 binary is version 5.1.2 from https://evermeet.cx/ffmpeg/
-        # Mac M1 binary is version 5.0.1 from https://github.com/eugeneware/ffmpeg-static/releases/tag/b5.0.1
-        # Everything except Windows is untested
-        p = platform.system()
-        if p == "Windows":
-            try: # if it runs we're probably fine
-                subprocess.run(self.engine_path+"\\ffmpeg\\windows_x86_64\\ffmpeg.exe", stderr=subprocess.PIPE)
-                self.ffmpeg_path = self.engine_path+"\\ffmpeg\\windows_x86_64\\ffmpeg.exe"
-            except:
-                self.append_log("Warning! FFmpeg not found!")
-                self.ffmpeg_path = False
-        elif p == "Darwin":
-            pass
-        else:
-            try: # same logic
-                subprocess.run("ffmpeg")
-                self.ffmpeg_path = "ffmpeg"
-            except:
-                self.ffmpeg_path = False
-                if p == "Linux": # Linux doesn't like static binaries but anyone using Linux is smart enough to install it themselves or doesn't need it
-                    self.append_log("FFmpeg not found! Linux users need to install themselves, this probably means running \"sudo apt install ffmpeg\" in your console but look up distro-specific instructions.")
-                else:
-                    self.append_log("FFmpeg not found! I don't recognise your system, so try obtaining a binary yourself and setting ffmpeg_override_path in config.json, or a global path variable to make \"ffmpeg\" accessible.")
-        return self.ffmpeg_path
+Outputs the contents of the grid as a neat string. Used for debugging.
 
-    def map_fs(self, resource_path, out={}):
-        for x in os.listdir(resource_path):
-            real_path = f"{resource_path}\\{x}"
-            if os.path.isdir(real_path):
-                out |= self.map_fs(real_path, out) # Recursively navigate folders
-            elif real_path.split(".")[-1].lower() in ["mp3", "aac", "flac", "wma"]:
-                ffmpeg_folder_path = resource_path+"\\ffmpeg_output\\"
-                z = real_path.split("\\")[-1]
-                new_path = ffmpeg_folder_path + z + ".ogg"
-                if not os.path.exists(new_path):
-                    if self.ffmpeg_path:
-                        if not os.path.exists(ffmpeg_folder_path):
-                            os.mkdir(ffmpeg_folder_path)
-                        subprocess.run([self.ffmpeg_path, "-i", real_path, new_path], stderr=subprocess.DEVNULL)
-                        self.append_log(f"Note: {x} was converted to a .ogg at {new_path}. Continue to refer to it as {x}")
-                        out[x] = new_path # The log entries should be descriptive enough
-                    else:
-                        self.append_log(f"Warning! FFmpeg was not found and {x} is not a .ogg. Either convert to .ogg or install FFmpeg. Texture will be discarded!")
-                else:
-                    self.append_log(f"Note: A cached .ogg was found for {x} at {new_path}. Continue to refer to it as {x}")
-            else:
-                out[x] = real_path
-        return out
+\subsubsection{update}
 
-    def get_events(self):
-        # Simple alias for getting pygame events
-        for x in pygame.event.get():
-            if x.type == pygame.QUIT:
-                self.running = False
-            self.events.append(x)
+At any time, the grid will be in a given state. This method acts as a lookup table, executing a different update function depending on the grid's current state.
 
-    def get_asset(self, path, audio=False, font=False, scale=False):
-        # path should be the texture name
-        # audio should be a boolean True or False as to whether the data is audio or not
-        # font should be a boolean True or False as to whether the data is a font or not
-        # Otherwise I'll assume you want an image
-        # False means that the data is an image and all other data should be gotten with get_raw_asset
-        # scale should be a float (usually between 0 and 1) or a tuple containing two integers
-        # If scale is a tuple then the two integers will be scaled by the same ratio as the increase in height so the texture
-        # maintains its original shape. By setting a float value for scaling developer's can ensure that a texture 
-        # will take up the same space on the screen regardless of resolution.
+\subsubsection{update\_verify}
 
-        # If it's not in the file system map return a default to prevent errors
-        if path in self.__fs_map:
-            path = self.__fs_map[path]
-        else:
-            self.append_log(f"Error! Asset {path} was not found in file map! Changing files requires running self.map_fs() again!")
-            if audio:
-                return self.__assets["missing.ogg"]
-            elif font:
-                return self.__assets["ComicMono.ttf"]
-            else:
-                return self.__assets["missing.png"]
+This method is called when updating in the VERIFY state. First we check the contents of the verify attribute, a set containing any beans that need to be removed (due to being in a colour group) this update. If there are beans that need to be removed, we first calculate the score for removing those beans, update the score counter and replace the beans with None in the grid. Our state then changes to VERIFY\_ANIMATION.
 
-        # If it's cached we don't need to do anything else
-        if path in self.__assets:
-            if audio or font:
-                return self.__assets[path]
-            elif scale and scale in self.__assets[path]:
-                # If we have the scaled version return it
-                return self.__assets[path][scale]
-            elif not scale:
-                return self.__assets[path]["raw"]
-            else:
-                # Otherwise scale it
-                self.__assets[path][scale] = self.__scale(self.__assets[path]["raw"], scale, path)
-                return self.__assets[path][scale]
+Alternatively, if there are no beans that need to be removed, we check the third cell of the top row (where beans spawn), and if it's filled then we change our state to DIE. (Death is not actually implemented, but will simply destroy the grid entity and display a message in the console). If we didn't die, then we get the next pair of falling beans from the bean queue, and calculate our score, which I will discuss now.
 
-        # Fetch if not in cache
-        if audio:
-            try:
-                self.__assets[path] = pygame.mixer.Sound(path)
-                return self.__assets[path]
-            except:
-                self.append_log(f"Error! Asset {path} was not found in the mapped location! Changing files requires running self.map_fs() again!")
-                return self.__assets["missing.ogg"]
-        elif font:
-            try:
-                self.__assets[path] = pygame.font.Font(path)
-                return self.__assets[path]
-            except:
-                self.append_log(f"Error! Asset {path} was not found in the mapped location! Changing files requires running self.map_fs() again!")
-                return self.__assets["ComicMono.ttf"]
-        else:
-            try:
-                self.__assets[path] = {"raw": pygame.image.load(path)}
-                if not scale:
-                    return self.__assets[path]["raw"]
-                else:
-                    self.__assets[scale] = self.__scale(self.__assets[path]["raw"], scale, path)
-                    return self.__assets[scale]
-            except:
-                self.append_log(f"Error! Asset {path} was not found in the mapped location! Changing files requires running self.map_fs() again!")
-                return self.__assets["missing.png"]["raw"]
+\subsubsection{chain\_power\_lookup, colour\_bonus\_lookup and group\_bonus\_lookup}
+
+These are static methods that act as lookup tables for different bonuses, but it gives me an opportunity to talk about how scoring is calculated.
+
+You will see during gameplay two numbers multipled together. The first number is equal to 10 multiplied by the maximum number number of beans popped at one time during the chain. During any point in the chain, count the number of beans that are currently being popped, and if that number is greater than the beans\_popped attribute, that becomes the new value of the beans\_popped attribute.
+
+The second number is equal to (chain power bonus + colour bonus + group bonus). Chain power bonus is the value gotten from chain\_power\_lookup, inputting the chain power when the chain concludes. Colour bonus and group bonus are different, incrementing the bonus at each stage of the chain. At a given point during the chain, the group bonus is incremented for any group that contains more than 4 puyos. At a given point during the chain, the colour bonus is incremented if there are multiple different colours of puyo being popped at the same time. Additionally, in our score calculation, (chain power bonus + colour bonus + group bonus) must be at least 1, even if the output is 0.
+
+\subsubsection{animate\_verify}
+
+This method is called for updates during the VERIFY\_ANIMATION state. It increments a counter that causes actions to occur at different time periods, such as changing textures or playing a sound effect.
+
+\subsubsection{animate\_gravity}
+
+This method is called for updates during the GRAVITY\_ANIMATION state. The first part of this happens while there are gravity beans in the gravity attribute list. Each of these has a generator object that can be iterated through to animate the bean. When StopIteration is raised, the animation is finished, and the bean is placed in the correct position and removed from the gravity list. Additionally we also check for colour groups where this bean has fallen and correct it's texture.
+
+When all the beans have been removed from the gravity list, then we start counting to 50 before changing to the VERIFY state. This causes a short pause beforce beginning verification again.
+
+\subsubsection{update\_gravity\_quick}
+
+This is an unused method that uses a quicker way of calculating where beans fall by simply removing empty cells in columns. This would be useful for replay files, but cannot be used for gameplay as since we don't know which beans have fallen we cannot animate them falling.
+
+\subsubsection{update\_gravity}
+
+This method is called for updates during the GRAVITY state.
+
+For every column in the grid, we get a list containing just the contents of that column. If that column is full, we ignore it, otherwise we use the split\_list static method. This method acts exactly like the split method for a string, but for lists. It returns a 2D array, split by a separator, acting on a 1D array. This split list is very useful because the index of the list that each bean is in represents the number of rows that bean will fall. We use this information to replace these beans with gravity beans that are set to fall this distance, and replace the column with empty cells before changing state to GRAVITY\_ANIMATION.
+
+\subsubsection{place\_bean}
+
+Useful method for placing beans. Pads the grid if the desired position doesn't yet exist, places the bean in the grid, then checks for colour groups and updates the newly placed bean's texture.
+
+\subsubsection{render}
+
+At any time, the grid will be in a given state. This method first draws the beans in the grid. Then, this method acts as a lookup table, executing a different render function depending on the grid's current state. Then, we draw background3.png over the top, creating the effect of beans being behind this background.
+
+\subsubsection{render\_grid}
+
+Converts 1D list into 2D positions and draws the beans.
+
+\subsubsection{render\_bean}
+
+Accepts a bean, a row and a column as arguments. Uses pygame to draw the bean to the screen.
+
+\subsubsection{render\_gravity}
+
+Method executed for render calls in the GRAVITY\_ANIMATION state. Runs the render\_bean function for every gravity bean.
+
+\subsubsection{render\_verify}
+
+Method executed for render calls in the VERIFY\_ANIMATION state. Runs render\_bean for beans being verified, but additionally uses the counter to make them flash and be animated.
+
+\subsubsection{render\_falling}
+
+Method executed for render calls in the FALL state. Draws the falling bean pair by first calling render\_bean on the primary bean and then using a lookup table to find the relative position of the secondary bean dependant on rotation state.
+
+\subsubsection{eval\_all\_textures}
+
+Method used when passing in a pre-filled grid on initialisation. Evaluates the texture for every bean in the grid.
+
+\subsubsection{eval\_texture}
+
+For a given bean, checks the beans adjacent to it and updates the bean's attributes to match. Updating these attributes also updates the bean's texture.
+
+\subsubsection{eval\_up, eval\_down, eval\_left, eval\_right}
+
+Very similar methods used for checking the particular side of a bean, to see if a bean of the same colour, or any bean at all is present there.
+
+\subsubsection{eval\_surrounding}
+
+Evaluates the texture for a bean, then evalutates the texture of every bean adjacent to that beans. If you have just placed a bean, run this function to update grid textures efficiently.
+
+\subsubsection{count\_all}
+
+A version of count that checks for groups in the entire grid. Used when loading a non-empty grid.
+
+\subsubsection{count}
+
+Method for checking for groups in one part of a grid once you're placed a bean. First, check if the bean is already in the list of beans to be removed. If it isn't, then create a set containing that bean. Sets must contain unique items and will remove duplicates. Then, we use a function to get all the beans adjacent to that bean that are the same colour, and add them to a list. Then, for every bean in that list, we get the beans that are adjacent to those beans and the same colour. We keep doing this until we run out of unique beans in our list to check.  Then, if the group is larger than 4 beans, we add it to the necessary attributes.
+
+\subsubsection{get\_surroundings}
+
+A method for getting beans adjacent to a bean that are the same colour as that bean and also not already in the group.
+
+\subsection{BeanQueue}
+
+A BeanQueue is an entity that is loaded by and belongs to a Grid.
+
+\subsubsection{\_\_init\_\_}
+
+The only additional parameter a bean queue takes on initialisation is position, which decides where it is rendered on the screen. It has a next attribute, which is a tuple of two beans of random colours that are generated using randint from python's random module.
+
+\subsubsection{render}
+
+A copy of the render\_bean method from the grid, for drawing the next upcoming pair of falling beans.
+
+\subsubsection{update}
+
+Since I ran out of time to animate it, this entity does not have an update method.
+
+\subsubsection{get\_next}
+
+Returns the bean pair that was being displayed in the queue and randomly generates a new bean pair.
+
+\subsection{Bean}
+
+A Bean is not an entity. It is created and used by Grid.
+
+\subsubsection{\_\_init\_\_}
+
+A bean takes a colour as an argument on initialisation. This can either be the name of a colour, or the associated ID of that colour. It additionally has keyword arguments that allow you to get its texture.
+
+\subsubsection{\_\_str\_\_, \_\_repr\_\_}
+
+Debugging method that prints the bean's colour.
+
+\subsubsection{get\_texture}
+
+The boolean True or False of whether a bean of the same colour is adjacent to this bean on a given side can be combined into a 4-bit integer, which can be assigned to the correct texture to show in those states. Other textures require the state attribute to be set, which overrides this 4-bit integer on what texture to select.
+
+\subsubsection{Getters and setters}
+
+Changing a variable that would effect the texture of a bean causes it to re-evaluate it's own texture.
+
+\subsection{GravityBean}
+
+GravityBean is not an entity, it inherits from Bean. It is used to animate a bean falling into a new position.
+
+\subsubsection{\_\_init\_\_}
+
+This method has man positional arguments. bean represents the Bean object that the GravityBean is based on. destination represents the index in the grid that the bean will be placed at when it's animation is finished. row\_distance represents the number of rows that the bean will fall downwards. row and column represent the starting position of the bean.
+Once these attributes have been assigned, a generator object is used to animate the falling bean. This is stored in the position attribute and should be advanced once per update.
+
+\subsection{FallingBean}
+
+FallingBean is not an entity and it does not inherit from anything. It contains Beans and it represents the pair of beans that the player has control over.
+
+\subsubsection{\_\_init\_\_}
+
+Takes the grid object as an input parameter, initialises attributes.
+
+\subsubsection{update}
+
+Has a counter that is incremented for timing. The texture of the primary bean is changed relative to the counter. Then we check if a rotation key is held down then we rotate. The rotation function makes it so that if a wall is in the way the bean is pushed away from the wall. Then we check if a move left or right action should occur and verify whether it is possible or if there is something in the way. If there is something in the way then moving left or right fails. We move the bean downwards relative to the counter and fall rate, fall rate is decreased if the down arrow is held. If we hit the bottom of the grid of there is a bean below when we are trying to fall, place the beans there. Otherwise, move the beans downwards. If the down arrow is held then we award points.
+
+\chapter{Technical Solution}
+
+\section{Features}
+
+List operations/complex algorithms/recursive algorithms: merge sort, gameplay.py, line 909
+Complex algorithm: variation of run length encoding, kris\_engine/files.py, line 152
+Complex algorithm: efficient sorting of beans into colour groups, gameplay.py, line 432
+Mathematical formula: score calculation, gameplay.py, line 154
+Complex file operations: kris\_engine/files.py, line 281
+Complex OOP: Can be seen throughout the entire project. See the documented design. Multiple classes inherit from Entity and Scene, many classes are dynamically created and composed of other classes, see Grid creating Bean objects, polymorphism is used whenever the update and render methods of an Entity are overriden... The list goes on.
 
 
-    def __scale(self, obj, scale, path):
-        self.append_log(f"Scaling asset {path} with settings {scale}")
-        if isinstance(scale, tuple):
-            # Just in case someone decided to not follow my instructions, ensures tuple of size 2
-            if len(scale) == 1:
-                scale = scale[0]
-            else:
-                scale = scale[:2]
-        if isinstance(scale, float) or isinstance(scale, int):
-            x = self.height*scale
-            scale = (int((x/obj.get_height())*obj.get_width()), int(x))
-        # Now in both cases we have a tuple of length two with target pixel values
-        return pygame.transform.scale(obj, scale)
+\section{kris\_engine/\_\_init\_\_.py}
 
-    def load_entity(self, entity, scene, params=tuple()):
-        # Will add checks later this is rudimentary
-        id = self.id
-        e = entity(self, scene, id, *params)
-        self.__entities.append(e)
-        self.entity_id = {id: e}
-        return e
+\inputminted[breaklines, linenos]{python}{../game/kris_engine/__init__.py}
 
-    def load_scene(self, scene):
-        # Will add checks later this is rudimentary
-        self.scene = scene
-        self.update_rate, self.render_rate = scene.update_rate, scene.render_rate
-        self.update_counter, self.render_counter = 0, 0
-        scene.music().play(loops=-1)
-        self.scene_time = time.perf_counter()
-        self.started = True
+\section{kris\_engine/files.py}
 
-    def update_loop(self):
-        self.__threads[threading.get_ident()] = {"colour": Colour(0x6cd663), "name": "Update"}
-        self.append_log("Update thread started!")
-        while not self.started: # Wait for scene to be loaded
-            pass
-        while self.running:
-            self.update_counter += 1
-            event = len(self.events)
-            # Go through list of entities in order
-            for e in self.__entities:
-                e.update()
-            # All events are appended to self.events by the main thread
-            # But it's the update thread that actually needs them so this
-            # means the events will be processed in the update then removed
-            self.events = self.events[event:]
-            t = time.perf_counter()
-            # "How long do I have to wait to limit the rate of updates"
-            # Except a millisecond less actually because it's better to do an update early than late
-            s = (self.update_counter/self.update_rate)-(t-self.scene_time)-0.001
-            if s > 0:
-                time.sleep(s) # wait
-            # If it's negative then oh no we're behind
-            elif self.lag2+2 < t:  # Explained earlier, no console spam
-                x = int(self.update_rate*-s)
-                if x: # If we're less than 1 update behind why even bother
-                    self.append_log(f"Warning! Update was {round(-s*1000, 1)}ms behind! {x+1} updates behind!")
-                    self.lag2 = time.perf_counter()
+\inputminted[breaklines, linenos]{python}{../game/kris_engine/files.py}
 
+\section{kris\_engine/pbar.py}
 
-    def render_loop(self):
-        self.__threads[threading.get_ident()] = {"colour": Colour(0xf2e40d), "name": "Render"}
-        self.append_log("Render thread started!")
-        while not self.started: # Wait for scene to be loaded
-            pass
-        while self.running:
-            self.render_counter += 1
-            self.scene.background()
-            # Go through list of entities in order
-            for e in self.__entities:
-                e.render()
-            while not self.event_gotten:
-                time.sleep(0.001)
-            pygame.display.update()
-            self.event_gotten = False
-            t = time.perf_counter()
-            # "How long do I have to wait to limit the frame rate"
-            # Except a millisecond less actually because it's better to do a frame early than late
-            s = (self.render_counter/self.render_rate)-(t-self.scene_time)-0.001
-            if s > 0:
-                time.sleep(s)# wait
-            # If it's negative then oh no we're behind
-            elif self.lag+2 < t: # Explained earlier, no console spam
-                x = int(self.render_rate*-s)
-                if x: # If we're less than 1 frame behind why even bother
-                    self.append_log(f"Warning! Frame was {round(-s*1000, 1)}ms behind! {x+1} frames behind!")
-                    self.lag = time.perf_counter()
+\inputminted[breaklines, linenos]{python}{../game/kris_engine/pbar.py}
 
-    @property
-    def id(self):
-        self.__id += 1
-        return self.__id
+\section{exercise.py}
 
-class Entity:
-    persist = False # The entity will be destroyed upon loading a new scene
+\inputminted[breaklines, linenos]{python}{../game/exercise.py}
 
-    def __init__(self, engine, scene, id):
-        # DO NOT override the __init__ function this ensures an entity functions correctly and will be verified
-        self.engine = engine
-        self.id = id
-        self.scene = scene
-    
-    def init(self):
-        self.engine.append_log("The default entity class has been initialised. Please check the log for errors.")
-        self.rotation = 0
+\section{gameplay.py}
 
-    def update(self): # spin
-        self.rotation += 0.25
-        self.rotation %= 360
+\inputminted[breaklines, linenos]{python}{../game/gameplay.py}
 
-    def render(self):
-        t = self.engine.get_asset("missing.png", scale=0.2)
-        s = self.engine.screen
-        self.engine.screen.blit(pygame.transform.rotate(t, self.rotation), ((s.get_width()/2)-(t.get_width()/2), (s.get_height()/2)-(t.get_width()/2)))
-        # "stick it in the middle of the screen"
+\section{main.py}
 
-class Scene:
-    loading_screen = False
-    loading_screen_entity = False
-    update_rate = 240 # Updates per second, must be positive integer, will verify at some point
-    render_rate = 60 # Frames per second, must be positive integer, will verify at some point
-    background = lambda self: self.engine.screen.fill(0) # Fill the screen with black
-    # Tem Shop from the Undertale soundtrack belongs to Toby Fox and Materia Collective
-    # I'm not selling it so I think he'll be chill with it right?
-    music = lambda self: self.engine.get_asset("tem_shop.ogg", audio=True)
-    
-    def __init__(self, engine):
-        # Override this function! Use it to load your textures and entities
-        self.engine = engine
-        self.engine.get_asset("missing.png", scale=0.2)
-        e = engine.load_entity(Entity, self)
-        e.init()
+\inputminted[breaklines, linenos]{python}{../game/main.py}
 
-# Implementation of ANSI escape codes for coloured text in console
-# Credit to Hope Shivlock
-# Add to the front of a string, pass in a hexcode
-class Colour:
-    default="\033[0m"
-    def __init__(self,hexcode):
-        if type(hexcode)==int:
-            # Convert hex codes to 3 integers
-            hexcode = ((hexcode%16777216)//65536,(hexcode%65536)//256,hexcode%256)
-        self._col=hexcode
-        # Generate ANSI
-        self._ansi="\033[38;2;"+";".join([str(num) for num in hexcode])+"m"
-    def __call__(self,text="",change=True): # Get code when class is called as a function
-        if change:
-            return self._ansi+text+self.default
-        else:
-            return self._ansi
-    def __add__(self,other): # Get code when class is added to string
-        return self._ansi+other
-    def __str__(self): # I added this bit it's useful for f-strings
-        return self._ansi
-    # Hope likes getters and setters she added this so you can change the colour
-    # But personally I just call a new instance of the very lightweight class
-    @property
-    def col(self):
-        return self._col
-    @col.setter
-    def col(self,hexcode):
-        if type(hexcode)==int:
-            hexcode = ((hexcode%16777216)//65536,(hexcode%65536)//256,hexcode%256)
-        self._col=hexcode
-        self._ansi="\033[38;2;"+";".join([str(num) for num in hexcode])+"m"
-    @property
-    def ansi(self):
-        return self._ansi
+\chapter{Testing}
 
-# "If this script isn't being imported then start the engine"
-if __name__ == "__main__":
-    e = Engine()
-    # Purely here for testing right now
-    
-\end{minted}
+\href{https://youtu.be/AEm3DuqjUY8}{https://youtu.be/AEm3DuqjUY8}
+
+In the above video, you can verify a number of tests, including:
+\begin{itemize}
+    \item Confirming that rotation works
+    \item The falling pair is pushed away from any walls that they rotate near 
+    \item The pair does not pass through any walls or other beans
+    \item The pair places in the correct position and falls with gravity
+    \item All the correct textures appear
+    \item Scoring is correct, with footage from an emulator to prove that it produces the same values
+    \item Beans fall correctly and match in groups when falling
+    \item Dying is implemented correctly, no matter whether dying to an odd or even number of beans
+    \item The score board displayed in the console is in the correct order
+\end{itemize}
+
+\chapter{Evaluation}
+
+Ultimately, I greatly overestimated the scope of this project and my ability to complete it. I have successfully managed to make a working Puyo Puyo prototype, however I did not manage to create a suitable replacement to an emulated version of the game, nor even something that could be considered its equal. If I had the opportunity to complete the project again I would choose a project that was more focused on backend tasks and algorithmic complexity as these are things that I really enjoy programming, and ultimately I should stick to what I'm good at.
+
 \end{document}
